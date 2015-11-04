@@ -13,6 +13,7 @@ public:
 	void playSound(uint8_t id) {}
 	
 private:
+	void draw();
 	void drawPixel(SDL_Surface *surface, int x, int y, Uint32 pixel);
 
 	void updateInputState(int eventType, bool pressed);
@@ -25,19 +26,5 @@ private:
 };
 
 extern SDLPlatform Platform;
-
-inline void drawPixel(uint8_t x, uint8_t y, uint8_t colour)
-{
-	Platform.drawPixel(x, y, colour);
-}
-inline void setPixel(uint8_t x, uint8_t y)
-{
-	Platform.drawPixel(x, y, 0);
-}
-inline void clearPixel(uint8_t x, uint8_t y)
-{
-	Platform.drawPixel(x, y, 1);
-}
-void clearDisplay(uint8_t colour);
 
 #endif

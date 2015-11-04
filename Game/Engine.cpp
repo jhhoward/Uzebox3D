@@ -7,8 +7,10 @@ void Engine::init()
 	menu.init();
 	difficulty = Difficulty_Medium;
 	map.initStreaming();
-	gameState = GameState_Menu;
+	renderer.init();
+	
 	map.currentLevel = 0;
+	startLevel();
 	// hacks
 	//map.currentLevel = 2;
 	//difficulty = Difficulty_Baby;
@@ -34,7 +36,7 @@ void Engine::startLevel(bool resetPlayer)
 void Engine::startingLevel()
 {
 #ifdef _WIN32
-	SDL_Delay(1000);
+	//SDL_Delay(1000);
 #endif
 	gameState = GameState_Loading;
 	for(int n = 0; n < MAX_ACTIVE_ACTORS; n++)
@@ -63,10 +65,12 @@ void Engine::update()
 			if(player.hp > 0)
 			{
 				map.update();
+#if 0
 				for(int n = 0; n < MAX_ACTIVE_ACTORS; n++)
 				{
 					actors[n].update();
 				}
+#endif
 			}
 
 			if(Platform.readInput() & Input_Btn_C)
@@ -115,6 +119,7 @@ void Engine::draw()
 			renderer.drawFrame();
 		}
 		break;
+#if 0
 	case GameState_StartingLevel:
 	case GameState_Loading:
 		{
@@ -140,6 +145,7 @@ void Engine::draw()
 			}
 		}
 		break;
+#endif
 	}
 }
 

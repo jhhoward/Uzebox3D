@@ -5,11 +5,14 @@
 
 SDLPlatform Platform;
 
+uint8_t displayBuffer[DISPLAYWIDTH];
+uint8_t colourTable[512];
+
 void SDLPlatform::init()
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
-	SDL_CreateWindowAndRenderer( DISPLAYWIDTH * ZOOM_SCALE, DISPLAYHEIGHT * ZOOM_SCALE, SDL_WINDOW_RESIZABLE, &m_appWindow, &m_appRenderer );
-	SDL_RenderSetLogicalSize(m_appRenderer, DISPLAYWIDTH, DISPLAYHEIGHT);
+	SDL_CreateWindowAndRenderer( DISPLAYWIDTH * ZOOM_SCALE * ASPECT_RATIO, DISPLAYHEIGHT * ZOOM_SCALE, SDL_WINDOW_RESIZABLE, &m_appWindow, &m_appRenderer );
+	SDL_RenderSetLogicalSize(m_appRenderer, DISPLAYWIDTH * ASPECT_RATIO, DISPLAYHEIGHT);
 	
 	m_screenSurface = SDL_CreateRGBSurface(0, DISPLAYWIDTH, DISPLAYHEIGHT, 32, 
 											0x000000ff,
@@ -17,7 +20,7 @@ void SDLPlatform::init()
 											0x00ff0000, 
 											0xff000000
 											);
-	m_screenTexture = SDL_CreateTexture(m_appRenderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, m_screenSurface->w, m_screenSurface->h);
+	m_screenTexture = SDL_CreateTexture(m_appRenderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, m_screenSurface->w * ASPECT_RATIO, m_screenSurface->h);
 	m_isRunning = true;
 }
 
@@ -84,11 +87,19 @@ void SDLPlatform::run()
 		engine.update();
 		engine.draw();
 
+		draw();
+
 		SDL_UpdateTexture(m_screenTexture, NULL, m_screenSurface->pixels, m_screenSurface->pitch);
-		SDL_RenderCopy(m_appRenderer, m_screenTexture, NULL, NULL);
+		SDL_Rect src, dest;
+		src.x = src.y = dest.x = dest.y = 0;
+		src.w = DISPLAYWIDTH;
+		src.h = DISPLAYHEIGHT;
+		dest.w = DISPLAYWIDTH * ASPECT_RATIO;
+		dest.h = DISPLAYHEIGHT;
+		SDL_RenderCopy(m_appRenderer, m_screenTexture, &src, &dest);
 		SDL_RenderPresent(m_appRenderer);
 
-		SDL_Delay(1000 / 20);
+		SDL_Delay(1000 / 30);
 	}
 
 	SDL_Quit();
@@ -116,45 +127,24 @@ void SDLPlatform::drawPixel(SDL_Surface *surface, int x, int y, Uint32 pixel)
     *(Uint32 *)p = pixel;
 }
 
-uint8_t paletteColours[] =
-{
-#if defined(EMULATE_GAMEBUINO)
-	0, 0, 0,
-	206, 221, 231,
-#elif defined(EMULATE_ARDUBOY)
-	0, 0, 0,
-	255, 255, 255,
-#else
-	0, 0, 0,
-	255, 255, 255,
-	145, 145, 170,
-	182, 182, 170
-#endif
-};
-
 void SDLPlatform::drawPixel(uint8_t x, uint8_t y, uint8_t colour)
 {
-	Uint32 col = SDL_MapRGBA(m_screenSurface->format, paletteColours[colour * 3], paletteColours[colour * 3 + 1], paletteColours[colour * 3 + 2], 255);
+	int red = (((colour >> 0) & 7) * 255) / 7;
+	int green = (((colour >> 3) & 7) * 255) / 7;
+	int blue = (((colour >> 6) & 3) * 255) / 3;
+	Uint32 col = SDL_MapRGBA(m_screenSurface->format, red, green, blue, 255);
 	drawPixel(m_screenSurface, x, y, col);
-
-	/*if(!colour)
-	{
-		Uint32 black = SDL_MapRGBA(m_screenSurface->format, 0, 0, 0, 255);
-		drawPixel(m_screenSurface, x, y, black);
-	}
-	else
-	{
-		Uint32 white = SDL_MapRGBA(m_screenSurface->format, 206, 221, 231, 255);
-		drawPixel(m_screenSurface, x, y, white);
-	}*/
 }
 
-void clearDisplay(uint8_t colour)
+
+void SDLPlatform::draw()
 {
 	for(int y = 0; y < DISPLAYHEIGHT; y++)
 	{
 		for(int x = 0; x < DISPLAYWIDTH; x++)
 		{
+			int offset = y < 64 ? y : 383 - y;
+			uint8_t colour = colourTable[offset + displayBuffer[x]];
 			drawPixel(x, y, colour);
 		}
 	}

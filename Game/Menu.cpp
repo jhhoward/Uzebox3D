@@ -110,6 +110,7 @@ void Menu::init()
 
 void Menu::draw()
 {
+#if 0
 	clearDisplay(1);
 
 	engine.renderer.drawString((const char*)pgm_read_ptr(&currentMenu[0]), 5, 1);
@@ -134,6 +135,7 @@ void Menu::draw()
 	}
 
 	engine.renderer.drawGlyph('*' - FIRST_FONT_GLYPH, 2, 12 + currentSelection * 6);
+#endif
 }
 
 void Menu::update()

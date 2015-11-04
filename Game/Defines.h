@@ -3,54 +3,22 @@
 
 #define USE_SIMPLE_COLLISIONS
 
-#if defined (_WIN32)
 #define STANDARD_FILE_STREAMING
 //#define PROGMEM_MAP_STREAMING
-#define EMULATE_GAMEBUINO 1
-//#define EMULATE_ARDUBOY 1 
-//#define EMULATE_HACKVISION 1
-//#define EMULATE_UZEBOX 1
 
-#if defined(EMULATE_GAMEBUINO)
-// Gamebuino
-#define DISPLAYWIDTH 84
-#define DISPLAYHEIGHT 48
-#elif defined(EMULATE_ARDUBOY)
-// Arduboy
-#define DISPLAYWIDTH 128
-#define DISPLAYHEIGHT 64
-#elif defined(EMULATE_HACKVISION)
-// Hackvision
-#define DISPLAYWIDTH 136
-#define DISPLAYHEIGHT 96
-#elif defined(EMULATE_UZEBOX)
-// Uzebox
-#define DISPLAYWIDTH 120
-#define DISPLAYHEIGHT 48
-#else
-#define DISPLAYWIDTH 256
-#define DISPLAYHEIGHT 192
-#endif
-
-#elif defined(PLATFORM_UZEBOX)
-#define DEFER_RENDER 1
-#define DISPLAYWIDTH 120
-#define DISPLAYHEIGHT 48
-#define EMULATE_UZEBOX 1
-
-#else // Gamebuino
-#define PETIT_FATFS_FILE_STREAMING
-//#define PROGMEM_MAP_STREAMING
-#define DISPLAYWIDTH LCDWIDTH
-#define DISPLAYHEIGHT LCDHEIGHT
-#endif
+#define DISPLAYWIDTH 144
+#define DISPLAYHEIGHT 128
 
 #define HALF_DISPLAYWIDTH (DISPLAYWIDTH >> 1)
 #define HALF_DISPLAYHEIGHT (DISPLAYHEIGHT >> 1)
 
+// bbgggrrr
+#define UZE_RGB(r, g, b) ((r >> 5) | ((g >> 5) << 3) | ((b >> 6) << 6))
+
 // WIN32 specific
 #ifdef _WIN32
 #define ZOOM_SCALE 3
+#define ASPECT_RATIO 2
 
 #define PROGMEM
 #define PSTR

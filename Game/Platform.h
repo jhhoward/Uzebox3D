@@ -29,4 +29,7 @@ public:
 	bool m_isMuted : 1;
 };
 
+extern uint8_t displayBuffer[];
+extern uint8_t colourTable[];
+
 #endif

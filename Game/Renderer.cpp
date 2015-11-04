@@ -3,6 +3,7 @@
 #include "FixedMath.h"
 #include "TileTypes.h"
 
+#if 0
 #include "Data_Walls.h"
 #include "Data_Pistol.h"
 #include "Data_Knife.h"
@@ -11,19 +12,65 @@
 #include "Data_BlockingDecorations.h"
 #include "Data_Items.h"
 #include "Data_Font.h"
-
+#endif
 
 #include <stdio.h>
 
+uint8_t LevelColours[] PROGMEM =
+{
+	UZE_RGB(127, 127, 127),		// Ceiling
+	UZE_RGB(64, 64, 64),		// Floor
+	UZE_RGB(32, 32, 32),		// Top wall edge
+	UZE_RGB(32, 32, 32),		// Bottom wall edge
+	UZE_RGB(192, 192, 192),		// Wall
+	UZE_RGB(255, 255, 255),		// Alt wall
+};
+
 void Renderer::init()
 {
+	updateLevelColours(LevelColours);
 }
+
+void Renderer::updateLevelColours(uint8_t* colours)
+{
+	uint8_t* ptr = colourTable;
+
+	// Top half
+	for(int n = 0; n < 64; n++)
+		(*ptr++) = pgm_read_byte(&colours[LevelColour_Ceiling]);
+	(*ptr++) = pgm_read_byte(&colours[LevelColour_TopWallEdge]);
+	for(int n = 0; n < 63; n++)
+		(*ptr++) = pgm_read_byte(&colours[LevelColour_Wall]);
+	
+	// Top half alt
+	for(int n = 0; n < 64; n++)
+		(*ptr++) = pgm_read_byte(&colours[LevelColour_Ceiling]);
+	(*ptr++) = pgm_read_byte(&colours[LevelColour_TopWallEdge]);
+	for(int n = 0; n < 63; n++)
+		(*ptr++) = pgm_read_byte(&colours[LevelColour_AltWall]);
+
+	// Bottom half
+	for(int n = 0; n < 64; n++)
+		(*ptr++) = pgm_read_byte(&colours[LevelColour_Floor]);
+	(*ptr++) = pgm_read_byte(&colours[LevelColour_BottomWallEdge]);
+	for(int n = 0; n < 63; n++)
+		(*ptr++) = pgm_read_byte(&colours[LevelColour_Wall]);
+	
+	// Bottom half alt
+	for(int n = 0; n < 64; n++)
+		(*ptr++) = pgm_read_byte(&colours[LevelColour_Floor]);
+	(*ptr++) = pgm_read_byte(&colours[LevelColour_BottomWallEdge]);
+	for(int n = 0; n < 63; n++)
+		(*ptr++) = pgm_read_byte(&colours[LevelColour_AltWall]);
+}
+
 
 void Renderer::drawDamage()
 {
 	if(damageIndicator > 0)
 	{
 		damageIndicator --;
+#if 0
 		for(int x = 0; x < DISPLAYWIDTH; x++)
 		{
 			setPixel(x, 0);
@@ -34,11 +81,13 @@ void Renderer::drawDamage()
 			setPixel(0, y);
 			setPixel(DISPLAYWIDTH - 1, y);
 		}
+#endif
 	}
 }
 
 void Renderer::drawWeapon()
 {
+#if 0
 	SpriteFrame* frame;
 	uint8_t* data;
 	
@@ -75,6 +124,7 @@ void Renderer::drawWeapon()
 			}
 		}
 	}
+#endif
 }
 
 void Renderer::drawFrame()
@@ -96,13 +146,10 @@ void Renderer::drawFrame()
 	view.cellZ = WORLD_TO_CELL(engine.player.z);
 	initWBuffer();
 
-#if !defined(DEFER_RENDER)
-	drawFloorAndCeiling();
-#endif
-
 	drawBufferedCells();
 	drawDoors();
 
+#if 0
 	for(int8_t n = 0; n < MAX_ACTIVE_ACTORS; n++)
 	{
 		if(engine.actors[n].type != ActorType_Empty && !engine.actors[n].flags.frozen)
@@ -119,37 +166,9 @@ void Renderer::drawFrame()
 			queueSprite((SpriteFrame*) &Data_itemSprites_frames[(engine.map.items[n].type - Tile_FirstItem)], (uint8_t*)Data_itemSprites, x, z);
 		}
 	}
-	
-#if 0
-	int fill1 = 0;
-	int fill2 = 0;
-	for(int i = engine.map.bufferX; i < engine.map.bufferX + MAP_BUFFER_SIZE; i++)
-	{
-		for(int j = engine.map.bufferZ; j < engine.map.bufferZ + MAP_BUFFER_SIZE; j++)
-		{
-			uint8_t tile = engine.map.getTile(i, j);
-			uint8_t colour = 1;
-
-			if(!((view.clipCos * (i - view.cellX) - view.clipSin * (j - view.cellZ)) <= 0))
-				fill1 ++;
-			if(!isFrustrumClipped(i, j))
-				fill2 ++;
-			if(tile >= Tile_FirstWall && tile <= Tile_LastWall)
-			{
-				colour = 0;
-				if((view.clipCos * (i - view.cellX) - view.clipSin * (j - view.cellZ)) <= 0)
-					colour = 1;
-				colour = isFrustrumClipped(i, j) ? 1 : 0;
-			}
-			drawPixel(i - engine.map.bufferX, j - engine.map.bufferZ, colour);
-		}
-	}
-	WARNING("Old: %d\tNew: %d\t Diff=%f\n", fill1, fill2, (float)fill2 / (float)fill1);
-	drawPixel(view.cellX - engine.map.bufferX, view.cellZ - engine.map.bufferZ, 0);
-
 #endif
 
-#if !defined(DEFER_RENDER)
+#if 0
 	for(uint8_t item = renderQueueHead; item != NULL_QUEUE_ITEM; item = renderQueue[item].next)
 	{
 		drawQueuedSprite(item);
@@ -173,29 +192,6 @@ void Renderer::drawFrame()
 	drawString(PSTR("       INCARNATE!"), 0, y); y += FONT_HEIGHT + 1;*/
 #endif
 }
-
-#ifdef DEFER_RENDER
-void Renderer::drawDeferredFrame()
-{
-	for(int x = 0; x < DISPLAYWIDTH; x++)
-	{
-		int16_t w = wbuffer[x];
-		int16_t halfW = w >> 1;
-		for(int y = 0; y < HALF_DISPLAYHEIGHT - halfW - 1; y++)
-		{
-			clearPixel(x, y);
-			clearPixel(x, DISPLAYHEIGHT - y - 1);
-		}
-		drawStrip(x, wbuffer[x], ubuffer[x], texbuffer[x]);
-	}
-	/*for(uint8_t item = renderQueueHead; item != NULL_QUEUE_ITEM; item = renderQueue[item].next)
-	{
-		drawQueuedSprite(item);
-	}
-
-	drawWeapon();*/
-}
-#endif
 
 void Renderer::drawBufferedCells()
 {
@@ -251,75 +247,13 @@ void Renderer::drawBufferedCells()
 
 void Renderer::initWBuffer()
 {
-	for (int8_t i=0; i<DISPLAYWIDTH; i++)
-		wbuffer[i] = 0;
+	for (uint8_t i=0; i<DISPLAYWIDTH; i++)
+		displayBuffer[i] = 0;
 }
 
-#if defined(PLATFORM_GAMEBUINO)
-extern uint8_t _displayBuffer[];
-void Renderer::drawFloorAndCeiling()
-{
-	memset(_displayBuffer, 0x00, 3*84);
-	for (int y=3, ofs=3*84; y<6; y++)
-	{
-		for (int8_t x=0; x<84; x+=2)
-		{
-			_displayBuffer[ofs++] = 0x55;
-			_displayBuffer[ofs++] = 0x00;
-		}
-	}
-}
-#else
-void Renderer::drawFloorAndCeiling()
-{
-	for(int x = 0; x < DISPLAYWIDTH; x++)
-	{
-		for(int y = 0; y < DISPLAYHEIGHT; y++)
-		{
-#if defined(EMULATE_UZEBOX)
-			if(y < HALF_DISPLAYHEIGHT || ((x & y) & 1) == 0)
-			{
-				drawPixel(x, y, 3);
-			}
-			else
-			{
-				drawPixel(x, y, 2);
-			}
-#elif 1
-			if(y < HALF_DISPLAYHEIGHT || ((x & y) & 1) == 0)
-			{
-				clearPixel(x, y);
-			}
-			else
-			{
-				setPixel(x, y);
-			}
-#else
-			if(y < HALF_DISPLAYHEIGHT || ((x ^ y) & 1) == 1)
-			{
-				setPixel(x, y);
-			}
-			else
-			{
-				clearPixel(x, y);
-			}
-#endif
-		}
-	}
-
-}
-#endif
-
-#if defined(PLATFORM_GAMEBUINO)
-extern Gamebuino gb;
-#endif
 
 void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 {
-#if defined(PLATFORM_GAMEBUINO)
-	// HACK: Keep calling update so that sound doesn't slow down. Ugh..
-	gb.update();
-#endif
 	// clip cells out of frustum view
 	if(isFrustrumClipped(cellX, cellZ))
 		return;
@@ -330,7 +264,8 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 
 	int16_t worldX = CELL_TO_WORLD(cellX);
 	int16_t worldZ = CELL_TO_WORLD(cellZ);
-	
+
+#if 0
 	if(tile >= Tile_FirstDecoration && tile <= Tile_LastDecoration)
 	{
 		queueSprite((SpriteFrame*) &Data_decorations_frames[tile - Tile_FirstDecoration], (uint8_t*)Data_decorations, worldX + CELL_SIZE / 2, worldZ + CELL_SIZE / 2);
@@ -341,6 +276,7 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 		queueSprite((SpriteFrame*) &Data_blockingDecorations_frames[tile - Tile_FirstBlockingDecoration], (uint8_t*)Data_blockingDecorations, worldX + CELL_SIZE / 2, worldZ + CELL_SIZE / 2);
 		return;
 	}
+#endif
 
 	if(tile >= Tile_FirstWall && tile <= Tile_LastWall)
 	{
@@ -353,25 +289,13 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 				// north west quadrant
 				if (view.z < worldZ)
 				{
-					if(engine.map.isDoor(cellX, cellZ - 1))
-					{
-						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ, DOOR_FRAME_TEXTURE);  // south wall
-					}
-					else if(!engine.map.isSolid(cellX, cellZ - 1))
-					{
-						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ, textureId);  // south wall
-					}
+					if(!engine.map.isSolid(cellX, cellZ - 1))
+						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ);  // south wall door
 				}
 				if (view.x > worldX + CELL_SIZE)
 				{
-					if(engine.map.isDoor(cellX + 1, cellZ))
-					{
-						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, DOOR_FRAME_TEXTURE);  // east wall
-					}
-					else if(!engine.map.isSolid(cellX+1, cellZ))
-					{
-						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, textureId);  // east wall
-					}
+					if(!engine.map.isSolid(cellX+1, cellZ))
+						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, ALT_WALL_COLOUR);  // east wall
 				}
 			}
 			else
@@ -379,25 +303,13 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 				// north east quadrant
 				if (view.z < worldZ)
 				{
-					if(engine.map.isDoor(cellX, cellZ-1))
-					{
-						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ, DOOR_FRAME_TEXTURE);  // south wall
-					}
-					else if(!engine.map.isSolid(cellX, cellZ-1))
-					{
-						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ, textureId);  // south wall
-					}
+					if(!engine.map.isSolid(cellX, cellZ-1))
+						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ);  // south wall
 				}
 				if (view.x < worldX)
 				{
-					if(engine.map.isDoor(cellX-1, cellZ))
-					{
-						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, DOOR_FRAME_TEXTURE);  // west wall
-					}
-					else if(!engine.map.isSolid(cellX-1, cellZ))
-					{
-						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, textureId);  // west wall
-					}
+					if(!engine.map.isSolid(cellX-1, cellZ))
+						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, ALT_WALL_COLOUR);  // west wall
 				}
 			}
 		}
@@ -408,25 +320,13 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 				// south west quadrant
 				if (view.z > worldZ + CELL_SIZE)
 				{
-					if(engine.map.isDoor(cellX, cellZ+1))
-					{
-						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE, DOOR_FRAME_TEXTURE);  // north wall
-					}
-					else if(!engine.map.isSolid(cellX, cellZ+1))
-					{
-						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE, textureId);  // north wall
-					}
+					if(!engine.map.isSolid(cellX, cellZ+1))
+						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE);  // north wall
 				}
 				if (view.x > worldX + CELL_SIZE)
 				{
-					if(engine.map.isDoor(cellX+1, cellZ))
-					{
-						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, DOOR_FRAME_TEXTURE);  // east wall
-					}
-					else if(!engine.map.isSolid(cellX+1, cellZ))
-					{
-						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, textureId);  // east wall
-					}
+					if(!engine.map.isSolid(cellX+1, cellZ))
+						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, ALT_WALL_COLOUR);  // east wall
 				}
 			}
 			else
@@ -434,110 +334,21 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 				// south east quadrant
 				if (view.z > worldZ + CELL_SIZE)
 				{
-					if(engine.map.isDoor(cellX, cellZ+1))
-					{
-						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE, DOOR_FRAME_TEXTURE);  // north wall
-					}
-					else if(!engine.map.isSolid(cellX, cellZ+1))
-					{
-						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE, textureId);  // north wall
-					}
+					if(!engine.map.isSolid(cellX, cellZ+1))
+						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE);  // north wall
 				}
 				if (view.x < worldX)
 				{
-					if(engine.map.isDoor(cellX-1, cellZ))
-					{
-						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, DOOR_FRAME_TEXTURE);  // west wall
-					}
-					else if(!engine.map.isSolid(cellX-1, cellZ))
-					{
-						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, textureId);  // west wall
-					}
+					if(!engine.map.isSolid(cellX-1, cellZ))
+						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, ALT_WALL_COLOUR);  // west wall
 				}
 			}
 		}
 	}
 }
 
-#define FORCE_WALL_STRIP_EDGES 1
-
-/*inline*/ void Renderer::drawStrip(int16_t x, int16_t w, int8_t u, uint8_t textureId)
-{
-	int halfW = w >> 1;
-	int y1 = (HALF_DISPLAYHEIGHT) - halfW;
-	int y2 = (HALF_DISPLAYHEIGHT) + halfW;
-	int verror = halfW;
-
-	BitPairReader textureReader((uint8_t*) Data_wallTextures + u * TEXTURE_STRIDE + textureId * (TEXTURE_STRIDE * TEXTURE_SIZE));
-	uint8_t texData = textureReader.read();
-
-#if FORCE_WALL_STRIP_EDGES
-	for(int y = y1; y < y2; y++)
-#else
-	for(int y = y1; y <= y2; y++)
-#endif
-	{
-		if(y >= 0 && y < DISPLAYHEIGHT)
-		{
-			switch(texData)
-			{
-			case 1:
-				clearPixel(x, y);
-				break;
-			case 2:
-				setPixel(x, y);
-				break;
-			case 0:
-#if defined(EMULATE_UZEBOX)
-				drawPixel(x, y, 2);
-#else
-				if((x ^ y) & 1)
-				{
-					clearPixel(x, y);
-				}
-				else
-				{
-					setPixel(x, y);
-				}
-#endif
-				break;
-			case 3:
-#if defined(EMULATE_UZEBOX)
-				drawPixel(x, y, 3);
-#else
-				if((x & y) & 1)
-				{
-					setPixel(x, y);
-				}
-				else
-				{
-					clearPixel(x, y);
-				}
-#endif
-				break;
-			}
-
-		}
-
-		verror -= 15;
-
-		while(verror < 0)
-		{
-			texData = textureReader.read();
-			verror += w;
-		}
-	}
-
-#if FORCE_WALL_STRIP_EDGES
-	if(y2 < DISPLAYHEIGHT)
-		setPixel(x, y2);
-#endif
-
-}
-
-#ifdef PERSPECTIVE_CORRECT_TEXTURE_MAPPING
 // draws one side of a cell
-void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t textureId, int8_t _u1, int8_t _u2)
+void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t wallColour)
 {
 	// find position of wall edges relative to eye
 
@@ -578,153 +389,7 @@ void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint
 	int16_t w2 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z2);
 	int16_t dx = sx2 - sx1;
 	int16_t werror = dx >> 1;
-	int16_t uerror = werror;
 	int16_t w = w1;
-	int16_t du, ustep;
-	int16_t dw, wstep;
-
-	int16_t u1 = _u1 * w1;
-	int16_t u2 = _u2 * w2;
-	int16_t u = _u1;
-	int16_t z = z1;
-	int8_t dz, zstep;
-	int16_t zerror = werror;
-	if(z1 < z2)
-	{
-		dz = z2 - z1;
-		zstep = 1;
-	}
-	else
-	{
-		dz = z1 - z2;
-		zstep = -1;
-	}
-
-	if(w1 < w2)
-	{
-		dw = w2 - w1;
-		wstep = 1;
-	}
-	else
-	{
-		dw = w1 - w2;
-		wstep = -1;
-	}
-
-	if(u1 < u2)
-	{
-		du = u2 - u1;
-		ustep = 1;
-	}
-	else
-	{
-		du = u1 - u2;
-		ustep = -1;
-	}
-
-//	for (int x=firstx; x<=lastx; x++)
-	for (int x=sx1; x<=sx2; x++)
-	{
-		if (x >= 0 && x < DISPLAYWIDTH && w > wbuffer[x])
-		{        
-			if(w <= 255)
-			{
-				wbuffer[x] = (uint8_t) w;
-			}
-			else
-			{
-				wbuffer[x] = 255;
-			}
-
-#ifdef DEFER_RENDER
-			ubuffer[x] = u;
-			texbuffer[x] = textureId;
-#else
-			int16_t testOutU = (u * z) / (CELL_SIZE * NEAR_PLANE * CAMERA_SCALE);
-			float interpX = (float)(x - sx1) / (float)(sx2 - sx1);
-			float u1OverZ = (float)_u1 / (float) z1;
-			float u2OverZ = (float)_u2 / (float) z2;
-			float interpUOverZ = (interpX * u2OverZ) + (1.0f - interpX) * u1OverZ;
-			float interpZ = (interpX * z2) + (1.0f - interpX) * z1;
-			float interpU = interpUOverZ * interpZ;
-			uint8_t outU = (uint8_t) interpU;
-			outU = (uint8_t)testOutU;
-			outU = clamp(outU, 0, 15);
-			drawStrip(x, w, outU, textureId);
-#endif
-		}
-
-		werror -= dw;
-		uerror -= du;
-		zerror -= dz;
-
-		if(dx > 0)
-		{
-			while(werror < 0)
-			{
-				w += wstep;
-				werror += dx;
-			}
-			while(uerror < 0)
-			{
-				u += ustep;
-				uerror += dx;
-			}
-			while(zerror < 0)
-			{
-				z += zstep;
-				zerror += dx;
-			}
-		}
-	}
-}
-#else
-// draws one side of a cell
-void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t textureId, int8_t _u1, int8_t _u2)
-{
-	// find position of wall edges relative to eye
-
-	int16_t z2 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x1-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z1-view.z)));
-	int16_t x2 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x1-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z1-view.z)));
-	int16_t z1 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x2-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z2-view.z)));
-	int16_t x1 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x2-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z2-view.z)));
-
-	// clip to the front pane
-	if ((z1<CLIP_PLANE) && (z2<CLIP_PLANE))
-		return;
-	if (z1 < CLIP_PLANE)
-	{
-		x1 += (CLIP_PLANE-z1) * (x2-x1) / (z2-z1);
-		z1 = CLIP_PLANE;
-	}
-	else if (z2 < CLIP_PLANE)
-	{
-		x2 += (CLIP_PLANE-z2) * (x1-x2) / (z1-z2);
-		z2 = CLIP_PLANE;
-	}
-
-	// apply perspective projection
-	int16_t vx1 = (int16_t)(x1 * NEAR_PLANE * CAMERA_SCALE / z1);  
-	int16_t vx2 = (int16_t)(x2 * NEAR_PLANE * CAMERA_SCALE / z2); 
-
-	// transform the end points into screen space
-	int16_t sx1 = (int16_t)((DISPLAYWIDTH / 2) + vx1);
-	int16_t sx2 = (int16_t)((DISPLAYWIDTH / 2) + vx2) - 1;
-
-	// clamp to the visible portion of the screen
-	int16_t firstx = max(sx1, 0);
-	int16_t lastx = min(sx2, DISPLAYWIDTH-1);
-	if (lastx < firstx)
-		return;
-
-	int16_t w1 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z1);
-	int16_t w2 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z2);
-	int16_t dx = sx2 - sx1;
-	int16_t werror = dx >> 1;
-	int16_t uerror = werror;
-	int16_t w = w1;
-	int8_t u = _u1;
-	int8_t du, ustep;
 	int16_t dw, wstep;
 
 	if(w1 < w2)
@@ -738,41 +403,16 @@ void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint
 		wstep = -1;
 	}
 
-	if(_u1 < _u2)
-	{
-		du = _u2 - _u1;
-		ustep = 1;
-	}
-	else
-	{
-		du = _u1 - _u2;
-		ustep = -1;
-	}
-
-//	for (int x=firstx; x<=lastx; x++)
 	for (int x=sx1; x<=sx2; x++)
 	{
-		if (x >= 0 && x < DISPLAYWIDTH && w > wbuffer[x])
-		{        
-			if(w <= 255)
-			{
-				wbuffer[x] = (uint8_t) w;
-			}
-			else
-			{
-				wbuffer[x] = 255;
-			}
+		uint8_t wallHeight = min(w, HALF_DISPLAYHEIGHT);
 
-#ifdef DEFER_RENDER
-			ubuffer[x] = u;
-			texbuffer[x] = textureId;
-#else
-			drawStrip(x, w, u, textureId);
-#endif
+		if (x >= 0 && x < DISPLAYWIDTH && wallHeight > (displayBuffer[x] & 0x7F))
+		{        
+			displayBuffer[x] = wallHeight | wallColour;
 		}
 
 		werror -= dw;
-		uerror -= du;
 
 		if(dx > 0)
 		{
@@ -781,15 +421,9 @@ void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint
 				w += wstep;
 				werror += dx;
 			}
-			while(uerror < 0)
-			{
-				u += ustep;
-				uerror += dx;
-			}
 		}
 	}
 }
-#endif
 
 void Renderer::drawDoors()
 {
@@ -826,19 +460,19 @@ void Renderer::drawDoors()
 
 			if(view.x < doorX)
 			{
-				drawWall(doorX, doorZ + CELL_SIZE, doorX, doorZ, door.texture, 0, 15);
+				drawWall(doorX, doorZ + CELL_SIZE, doorX, doorZ);
 			}
 			else if(view.x > doorX)
 			{
-				drawWall(doorX + CELL_SIZE, doorZ, doorX + CELL_SIZE, doorZ + CELL_SIZE, door.texture, 0, 15);
+				drawWall(doorX + CELL_SIZE, doorZ, doorX + CELL_SIZE, doorZ + CELL_SIZE);
 			}
 			if(view.z > doorZ + CELL_SIZE)
 			{
-				drawWall(doorX + CELL_SIZE, doorZ + CELL_SIZE, doorX, doorZ + CELL_SIZE, door.texture, 0, 15);
+				drawWall(doorX + CELL_SIZE, doorZ + CELL_SIZE, doorX, doorZ + CELL_SIZE);
 			}
 			else if(view.z < doorZ)
 			{
-				drawWall(doorX, doorZ, doorX + CELL_SIZE, doorZ, door.texture, 0, 15);
+				drawWall(doorX, doorZ, doorX + CELL_SIZE, doorZ);
 			}
 		}
 		else
@@ -858,12 +492,12 @@ void Renderer::drawDoors()
 				if(view.x < worldX)
 				{
 					drawWall(worldX, worldZ + CELL_SIZE, 
-						worldX, worldZ + offset * 2, textureId, 0, 15 - offset);
+						worldX, worldZ + offset * 2);
 				}
 				else
 				{
 					drawWall(worldX, worldZ + offset * 2, 
-						worldX, worldZ + CELL_SIZE, textureId, 15 - offset, 0);
+						worldX, worldZ + CELL_SIZE);
 				}
 			}
 			else
@@ -872,12 +506,12 @@ void Renderer::drawDoors()
 				if(view.z > worldZ)
 				{
 					drawWall(worldX + CELL_SIZE, worldZ, 
-						worldX + offset * 2, worldZ, textureId, 0, 15 - offset);
+						worldX + offset * 2, worldZ);
 				}
 				else
 				{
 					drawWall(worldX + offset * 2, worldZ, 
-						worldX + CELL_SIZE, worldZ, textureId, 15 - offset, 0);
+						worldX + CELL_SIZE, worldZ);
 				}
 			}
 		}
@@ -886,7 +520,7 @@ void Renderer::drawDoors()
 
 void Renderer::queueSprite(SpriteFrame* frame, uint8_t* spriteData, int16_t _x, int16_t _z)
 {
-#if 1
+#if 0
 	int cellX = WORLD_TO_CELL(_x);
 	int cellZ = WORLD_TO_CELL(_z);
 
@@ -979,6 +613,7 @@ void Renderer::queueSprite(SpriteFrame* frame, uint8_t* spriteData, int16_t _x, 
 
 void Renderer::drawQueuedSprite(uint8_t id)
 {
+#if 0
 	uint8_t frameWidth = pgm_read_byte(&renderQueue[id].frame->width);
 	uint8_t frameHeight = pgm_read_byte(&renderQueue[id].frame->height);
 	int16_t halfW = renderQueue[id].w >> 1;
@@ -1060,10 +695,12 @@ void Renderer::drawQueuedSprite(uint8_t id)
 			}
 		}
 	}
+#endif
 }
 
 void Renderer::drawGlyph(char glyph, uint8_t x, uint8_t y)
 {
+#if 0
 	uint8_t* ptr = (uint8_t*) (Data_font + glyph * FONT_GLYPH_BYTE_SIZE);
 	uint8_t readMask = 1;
 	uint8_t read = pgm_read_byte(ptr++);
@@ -1088,10 +725,12 @@ void Renderer::drawGlyph(char glyph, uint8_t x, uint8_t y)
 	{
 		clearPixel(x + FONT_WIDTH, y + j);
 	}
+#endif
 }
 
 void Renderer::drawString(const char* str, uint8_t x, uint8_t y)
 {
+#if 0
 	char* ptr = (char*) str;
 	char current = 0;
 	uint8_t startX = x;
@@ -1114,10 +753,12 @@ void Renderer::drawString(const char* str, uint8_t x, uint8_t y)
 			y += FONT_HEIGHT + 1;
 		}
 	} while(current);
+#endif
 }
 
 void Renderer::drawInt(int8_t val, uint8_t x, uint8_t y)
 {
+#if 0
 	unsigned char c, i;
 
 	for(i = 0; i < 3; i++)
@@ -1134,4 +775,6 @@ void Renderer::drawInt(int8_t val, uint8_t x, uint8_t y)
 		x -= FONT_WIDTH + 1;
 		val = val / 10;
 	}
+#endif
 }
+

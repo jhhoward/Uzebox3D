@@ -9,6 +9,7 @@
 
 #define NULL_QUEUE_ITEM 0xff
 #define RENDER_QUEUE_CAPACITY 8
+#define ALT_WALL_COLOUR (1 << 7)
 
 struct RenderQueueItem
 {
@@ -16,6 +17,16 @@ struct RenderQueueItem
 	uint8_t* data;
 	uint8_t x, w;
 	uint8_t next;
+};
+
+enum
+{
+	LevelColour_Ceiling = 0,
+	LevelColour_Floor,
+	LevelColour_TopWallEdge,
+	LevelColour_BottomWallEdge,
+	LevelColour_Wall,
+	LevelColour_AltWall,
 };
 
 class Renderer
@@ -46,12 +57,14 @@ public:
 		return false;
 	}
 
+	void updateLevelColours(uint8_t* colours);
+
+
 private:
 	void initWBuffer();
 	void drawFloorAndCeiling();  
 	void drawCell(int8_t cellX, int8_t cellZ);
-/*inline*/ void drawStrip(int16_t x, int16_t w, int8_t u, uint8_t textureId);
-	void drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t textureId = 0, int8_t _u1 = 0, int8_t _u2 = 15);
+	void drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t wallColour = 0);
 	void drawFrustumCells();
 	void drawBufferedCells();
 	void drawDoors();
@@ -74,7 +87,6 @@ private:
 	int16_t sin_dir;
 	int8_t xcell, zcell;
 	int8_t numColumns;*/
-	uint8_t wbuffer[DISPLAYWIDTH];
 
 #ifdef DEFER_RENDER
 	uint8_t texbuffer[DISPLAYWIDTH];

@@ -216,6 +216,7 @@ uint8_t Map::streamIn(uint8_t tile, uint8_t metadata, int8_t x, int8_t z)
 			textureId = 12;
 		streamInDoor(tile - Tile_FirstDoor + 1, textureId, x, z);
 	}
+#if 0
 	else if(tile >= Tile_FirstItem && tile <= Tile_LastItem)
 	{
 		if(!isItemCollected(metadata))
@@ -251,7 +252,7 @@ uint8_t Map::streamIn(uint8_t tile, uint8_t metadata, int8_t x, int8_t z)
 		}
 		return Tile_Empty;
 	}
-
+#endif
 	return tile;
 }
 
