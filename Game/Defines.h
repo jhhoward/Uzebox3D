@@ -3,8 +3,8 @@
 
 #define USE_SIMPLE_COLLISIONS
 
-#define STANDARD_FILE_STREAMING
-//#define PROGMEM_MAP_STREAMING
+//#define STANDARD_FILE_STREAMING
+#define PROGMEM_MAP_STREAMING
 
 #define DISPLAYWIDTH 144
 #define DISPLAYHEIGHT 128
@@ -14,6 +14,10 @@
 
 // bbgggrrr
 #define UZE_RGB(r, g, b) ((r >> 5) | ((g >> 5) << 3) | ((b >> 6) << 6))
+
+#ifndef NULL
+#define NULL 0
+#endif
 
 // WIN32 specific
 #ifdef _WIN32

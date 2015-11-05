@@ -32,6 +32,10 @@ extern "C" {
 
 UzeboxPlatform Platform;
 
+uint8_t *colourTable = vram;
+uint8_t *displayBuffer = vram;
+
+
 int main(){
 
 	//Clear the screen (fills the vram with tile zero)
@@ -55,7 +59,7 @@ int main(){
 		Platform.update();
 		engine.update();
 		WaitVsync(1);
-		engine.renderer.drawDeferredFrame();
+		engine.renderer.drawFrame();
 	}
 }
 

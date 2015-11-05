@@ -41,7 +41,8 @@ inline void clearPixel(uint8_t x, uint8_t y)
 class UzeboxPlatform : public PlatformBase
 {
 public:
-	
+	void playSound(uint8_t id) {}
+
 	void update();
 };
 

@@ -61,7 +61,9 @@ void Map::init()
 		else ERROR(PSTR("SD CARD MOUNT ERROR"));
 	}
 #endif
-
+#ifdef PROGMEM_MAP_STREAMING
+	m_mapLoaded = true;
+#endif
 	for(int n = 0; n < 256 / 8; n++)
 	{
 		m_itemState[n] = 0;
@@ -193,7 +195,7 @@ void Map::streamData(uint8_t* buffer, uint8_t orientation, int8_t x, int8_t z, i
 		for(int8_t n = 0; n < length; n++)
 		{
 			buffer[n * 2] = pgm_read_byte(&mapData[z * MAP_SIZE + x + n]);
-			buffer[n * 2 + 1] = 0xff;
+			buffer[n * 2 + 1] = 0x0;
 		}
 	}
 	else
@@ -201,7 +203,7 @@ void Map::streamData(uint8_t* buffer, uint8_t orientation, int8_t x, int8_t z, i
 		for(int8_t n = 0; n < length; n++)
 		{
 			buffer[n * 2] = pgm_read_byte(&mapData[(z + n) * MAP_SIZE + x]);
-			buffer[n * 2 + 1] = 0xff;
+			buffer[n * 2 + 1] = 0x0;
 		}
 	}
 #endif
@@ -209,6 +211,7 @@ void Map::streamData(uint8_t* buffer, uint8_t orientation, int8_t x, int8_t z, i
 
 uint8_t Map::streamIn(uint8_t tile, uint8_t metadata, int8_t x, int8_t z)
 {
+#if 0
 	if(tile >= Tile_FirstDoor && tile <= Tile_LastDoor)
 	{
 		uint8_t textureId = 18;
@@ -216,7 +219,6 @@ uint8_t Map::streamIn(uint8_t tile, uint8_t metadata, int8_t x, int8_t z)
 			textureId = 12;
 		streamInDoor(tile - Tile_FirstDoor + 1, textureId, x, z);
 	}
-#if 0
 	else if(tile >= Tile_FirstItem && tile <= Tile_LastItem)
 	{
 		if(!isItemCollected(metadata))

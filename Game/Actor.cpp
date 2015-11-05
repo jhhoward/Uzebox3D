@@ -303,8 +303,8 @@ void Actor::pickNewTargetCell()
 
 int8_t Actor::getPlayerCellDistance()
 {
-	int8_t dx = WORLD_TO_CELL(abs(engine.player.x - x));
-	int8_t dz = WORLD_TO_CELL(abs(engine.player.z - z));
+	int8_t dx = WORLD_TO_CELL(mabs(engine.player.x - x));
+	int8_t dz = WORLD_TO_CELL(mabs(engine.player.z - z));
 	return max(dx, dz);
 }
 

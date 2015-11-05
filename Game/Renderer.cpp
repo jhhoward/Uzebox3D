@@ -405,6 +405,9 @@ void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint
 
 	for (int x=sx1; x<=sx2; x++)
 	{
+		//if(x == sx2)
+			//wallColour ^= ALT_WALL_COLOUR;
+
 		uint8_t wallHeight = min(w, HALF_DISPLAYHEIGHT);
 
 		if (x >= 0 && x < DISPLAYWIDTH && wallHeight > (displayBuffer[x] & 0x7F))

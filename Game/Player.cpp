@@ -448,6 +448,9 @@ void Player::init()
 		inventoryFlags = 0;
 	}
 
+	x = 944;
+	z = 1840;
+
 	weapon.frame = 0;
 	weapon.debounce = false;
 

@@ -48,7 +48,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
 ## Objects that must be built in order to link
-PROJECT_OBJECTS = Engine.o FixedMath.o Map.o Player.o Renderer.o UzeboxPlatform.o
+PROJECT_OBJECTS = Engine.o FixedMath.o Map.o Player.o Renderer.o UzeboxPlatform.o Actor.o Menu.o
 #PROJECT_OBJECTS = UzeboxPlatform.o
 OBJECTS = uzeboxVideoEngineCore.o uzeboxCore.o uzeboxSoundEngine.o uzeboxSoundEngineCore.o uzeboxVideoEngine.o $(PROJECT_OBJECTS)
 
@@ -89,6 +89,12 @@ Map.o: ../Game/Map.cpp
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 Player.o: ../Game/Player.cpp
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+Menu.o: ../Game/Menu.cpp
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+Actor.o: ../Game/Actor.cpp
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 Renderer.o: ../Game/Renderer.cpp

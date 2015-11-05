@@ -5,8 +5,11 @@
 
 SDLPlatform Platform;
 
-uint8_t displayBuffer[DISPLAYWIDTH];
-uint8_t colourTable[512];
+uint8_t _displayBuffer[DISPLAYWIDTH];
+uint8_t _colourTable[512];
+
+uint8_t* displayBuffer = _displayBuffer;
+uint8_t* colourTable = _colourTable;
 
 void SDLPlatform::init()
 {
