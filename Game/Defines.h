@@ -84,8 +84,8 @@
 #define CLIP_PLANE 1
 #define CAMERA_SCALE 1
 //#define WALL_HEIGHT 1.0f
-#define MOVEMENT 7
-#define TURN 3
+#define MOVEMENT 5 //7
+#define TURN 1 //3
 #define MIN_WALL_DISTANCE 8
 #define MAX_DOORS 12
 

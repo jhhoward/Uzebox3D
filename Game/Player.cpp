@@ -477,6 +477,8 @@ void Player::init()
 			}
 		}
 	}
+		//direction = 192;
+
 }
 
 void Player::shootWeapon()

@@ -30,7 +30,7 @@
 .global ClearVram
 
 .section .bss
-	.align 256
+	.align 8
 	colourTable:			.space 512
 	displayBuffer:			.space SCREEN_WIDTH
 
@@ -42,6 +42,7 @@ sub_video_mode:
 	ldi YH,hi8(colourTable)
 
 	clr r20
+	ldi r21, 32
 
 ;*************************************************************
 ; Rendering main loop starts here
@@ -53,9 +54,13 @@ next_scan_line:
 
 	;***draw line***
 	rcall render_tile_line
+	
+	out _SFR_IO_ADDR(DATA_PORT),0 ; black
+	// between 161 and 165
+	WAIT r19, (4 * 144) - 161;
 
+#if 0
 	WAIT r19,122 - CENTER_ADJUSTMENT
-
 
 	;duplicate each line
 	;sbrc r20,0
@@ -63,38 +68,66 @@ next_scan_line:
 	;sbrc r20,0
 	;sbci YH,hi8(-(SCREEN_WIDTH/4))
 	
+	inc r20
+	cpi r20,(SCREEN_HEIGHT)
+	mov r21, r20
+	brne next_scan_line
+#elif 1
+	WAIT r19,122 - CENTER_ADJUSTMENT
+
+	;duplicate each line
+	;sbrc r20,0
+	;subi YL,lo8(-(SCREEN_WIDTH/4))
+	;sbrc r20,0
+	;sbci YH,hi8(-(SCREEN_WIDTH/4))
+	
+	inc r20
+	cpi r20,(32)
+	breq swap_colour_table
+	brge decr_counter
+	
+	inc r21
+	rjmp next_scan_line
+	
+	swap_colour_table:
+	inc YH
+	rjmp next_scan_line
+	
+	decr_counter:
+	dec r21
+	
+	cpi r20, 64
+	brne next_scan_line
+#else
+	WAIT r19,99 - CENTER_ADJUSTMENT
 	;; < 64 = 1+1+1+1+1+2+N+N = 9
 	;; = 64 = 1+1+2+1+2+N+N = 9
 	;; > 64 = 1+1+1+2+1+1+2 = 9
-	;
-	; inc r20
-	;
-	; cpi r20, 64
-	; breq swap_colour_table
-	; brgt decr_counter
-	;
-	; inc r21
-	; nop
-	; nop
-	; rjmp next_scan_line
-	;
-	; swap_colour_table:
-	; inc YH
-	; nop
-	; nop
-	; rjmp next_scan_line
-	;
-	; decr_counter:
-	; dec r21
-	;
-	; cpi r20, SCREEN_HEIGHT
-	; brne next_scan_line
-	;
-	
+	; -27 + 4 = -23
 	inc r20
-	cpi r20,(SCREEN_HEIGHT)
+	
+	cpi r20, 64
+	breq swap_colour_table
+	brge decr_counter
+	
+	inc r21
+	nop
+	nop
+	rjmp next_scan_line
+	
+	swap_colour_table:
+	inc YH
+	nop
+	nop
+	rjmp next_scan_line
+	
+	decr_counter:
+	dec r21
+	
+	cpi r20, SCREEN_HEIGHT
 	brne next_scan_line
-
+#endif
+	
 	nop
 	rcall hsync_pulse ;145
 	
@@ -133,74 +166,74 @@ render_tile_line:
 	
 main_loop:		
 	ld YL, X+
-	add YL, r20
+	add YL, r21
 	ld r16, Y
-	nop
-	nop
-	nop
-	nop
+	;nop
+	;nop
+	;nop
+	;nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 0
 	
 	ld YL, X+
-	add YL, r20
+	add YL, r21
 	ld r16, Y
-	nop
-	nop
-	nop
-	nop
+	;nop
+	;nop
+	;nop
+	;nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 1
 
 	ld YL, X+
-	add YL, r20
+	add YL, r21
 	ld r16, Y
-	nop
-	nop
-	nop
-	nop
+	;nop
+	;nop
+	;nop
+	;nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 2
 	
 	ld YL, X+
-	add YL, r20
+	add YL, r21
 	ld r16, Y
-	nop
-	nop
-	nop
-	nop
+	;nop
+	;nop
+	;nop
+	;nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 3
 	
 	ld YL, X+
-	add YL, r20
+	add YL, r21
 	ld r16, Y
-	nop
-	nop
-	nop
-	nop
+	;nop
+	;nop
+	;nop
+	;nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 4
 	
 	ld YL, X+
-	add YL, r20
+	add YL, r21
 	ld r16, Y
-	nop
-	nop
-	nop
-	nop
+	;nop
+	;nop
+	;nop
+	;nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 5
 	
 	ld YL, X+
-	add YL, r20
+	add YL, r21
 	ld r16, Y
-	nop
-	nop
-	nop
-	nop
+	;nop
+	;nop
+	;nop
+	;nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 6
 	
 	ld YL, X+
-	add YL, r20
+	add YL, r21
 	ld r16, Y
-	nop
-	nop
-	nop
+	;nop
+	;nop
+	;nop
 	dec r18
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 7
 

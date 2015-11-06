@@ -32,10 +32,6 @@ extern "C" {
 
 UzeboxPlatform Platform;
 
-uint8_t *colourTable = vram;
-uint8_t *displayBuffer = vram;
-
-
 int main(){
 
 	//Clear the screen (fills the vram with tile zero)
@@ -47,15 +43,6 @@ int main(){
 	
 	while(1)
 	{
-		palette[0] = 0;
-		palette[1] = 255;
-		palette[2] = 164;
-		palette[3] = 173;
-		/*for(int n = 0; n < 16; n++)
-		{
-			PutPixel(n, n, 1);
-		}*/
-		
 		Platform.update();
 		engine.update();
 		WaitVsync(1);
@@ -83,27 +70,5 @@ void UzeboxPlatform::update()
 		inputState |= Input_Dpad_Up;
 	if(joypad & BTN_DOWN)
 		inputState |= Input_Dpad_Down;
-}
-
-void PutPixel2(unsigned char x, unsigned char y,unsigned char color){
-	if(x>=120 || y>=96) return;
-
-	unsigned int addr=((SCREEN_WIDTH/4)*y)+(x>>2);
-	unsigned char byte=vram[addr];
-	color&=3;
-	switch(x&3){
-		case 3:						
-			byte=(byte&~(3))|color;
-			break;
-		case 2:						
-			byte=(byte&~(3<<2))|(color<<2);
-			break;
-		case 1:						
-			byte=(byte&~(3<<4))|(color<<4);
-			break;
-		default:
-			byte=(byte&~(3<<6))|(color<<6);
-	}
-	vram[addr]=byte;
 }
 

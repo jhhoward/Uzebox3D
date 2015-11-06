@@ -10,8 +10,8 @@ CC = avr-gcc
 INFO=../gameinfo.properties
 
 ## Kernel settings
-KERNEL_DIR = c:/uzebox-git/kernel
-KERNEL_OPTIONS  = -DVIDEO_MODE=8 -DINTRO_LOGO=0 -DSOUND_ENABLE=0
+KERNEL_DIR = c:/uzebox/kernel
+KERNEL_OPTIONS  = -DVIDEO_MODE=0 -DVIDEO_MODE_PATH=. -DINTRO_LOGO=0 -DSOUND_ENABLE=0
 
 
 ## Options common to compile, link and assembly rules
