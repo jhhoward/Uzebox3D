@@ -7,6 +7,7 @@ SDLPlatform Platform;
 
 uint8_t displayBuffer[DISPLAYWIDTH];
 uint8_t colourTable[512];
+uint8_t overlayBuffer[DISPLAYWIDTH * DISPLAYHEIGHT / 16];
 
 //uint8_t _displayBuffer[DISPLAYWIDTH];
 //uint8_t _colourTable[512];
@@ -151,6 +152,16 @@ void SDLPlatform::draw()
 		{
 			int offset = y < 64 ? y : 383 - y;
 			uint8_t colour = colourTable[offset + displayBuffer[x]];
+
+			int overlayIndex = (((y >> 1) * DISPLAYWIDTH) + x) / 8;
+			uint8_t overlay = overlayBuffer[overlayIndex];
+			int overlayMask = 1 << (x % 8);
+			
+			if((overlayMask & overlay) != 0)
+			{
+				colour = 0;
+			}
+
 			drawPixel(x, y, colour);
 		}
 	}

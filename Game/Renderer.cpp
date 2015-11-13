@@ -3,11 +3,11 @@
 #include "FixedMath.h"
 #include "TileTypes.h"
 
-#if 0
-#include "Data_Walls.h"
 #include "Data_Pistol.h"
 #include "Data_Knife.h"
 #include "Data_Machinegun.h"
+#if 0
+#include "Data_Walls.h"
 #include "Data_Decorations.h"
 #include "Data_BlockingDecorations.h"
 #include "Data_Items.h"
@@ -29,6 +29,7 @@ uint8_t LevelColours[] PROGMEM =
 void Renderer::init()
 {
 	updateLevelColours(LevelColours);
+	drawWeapon();
 }
 
 void Renderer::updateLevelColours(uint8_t* colours)
@@ -87,10 +88,11 @@ void Renderer::drawDamage()
 
 void Renderer::drawWeapon()
 {
-#if 0
 	SpriteFrame* frame;
 	uint8_t* data;
 	
+	engine.player.weapon.type = WeaponType_Pistol;
+
 	switch(engine.player.weapon.type)
 	{
 	case WeaponType_Knife:
@@ -112,19 +114,41 @@ void Renderer::drawWeapon()
 	uint8_t frameWidth = pgm_read_byte(&frame->width);
 	uint8_t frameHeight = pgm_read_byte(&frame->height);
 	uint8_t x = HALF_DISPLAYWIDTH - 8 + pgm_read_byte(&frame->xOffset);
+	uint8_t mask = 1 << (x & 7);
+	uint8_t y = HALF_DISPLAYHEIGHT - 1;
+	uint8_t* overlayPtr = overlayBuffer + (y * DISPLAYWIDTH + x) / 8;
 
 	for(int8_t i = 0; i < frameWidth; i++)
 	{
+		y = HALF_DISPLAYHEIGHT - 1;
+
 		for(int8_t j = frameHeight - 1; j >= 0; j--)
 		{
 			uint8_t pixel = reader.read();
-			if(pixel)
+
+			if(pixel >= 2)
 			{
-				drawPixel(i + x, DISPLAYHEIGHT - frameHeight + j, (pixel - 1) ? 0 : 1);
+				*overlayPtr |= mask;
 			}
+			y--;
+			overlayPtr -= (DISPLAYWIDTH / 8);
+		}
+
+		x++;
+		overlayPtr += frameHeight * (DISPLAYWIDTH / 8);
+
+		mask <<= 1;
+		if(!mask)
+		{
+			mask = 1;
+			overlayPtr++;
 		}
 	}
-#endif
+
+/*	for(int n = 0; n < DISPLAYWIDTH * DISPLAYHEIGHT / 16; n++)
+	{
+		overlayBuffer[n] = 170;
+	}*/
 }
 
 void Renderer::drawFrame()
@@ -149,6 +173,7 @@ void Renderer::drawFrame()
 
 	drawBufferedCells();
 	drawDoors();
+
 
 #if 0
 	for(int8_t n = 0; n < MAX_ACTIVE_ACTORS; n++)
