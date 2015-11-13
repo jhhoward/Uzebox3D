@@ -25,6 +25,9 @@ private:
 	bool m_isRunning;
 };
 
+void ClearVram();
+
+
 extern SDLPlatform Platform;
 
 #endif

@@ -155,3 +155,9 @@ void SDLPlatform::draw()
 		}
 	}
 }
+
+void ClearVram()
+{
+	for(int n = 0; n < DISPLAYWIDTH; n++)
+		displayBuffer[n] = 0;
+}

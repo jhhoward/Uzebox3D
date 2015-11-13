@@ -144,7 +144,8 @@ void Renderer::drawFrame()
 
 	view.cellX = WORLD_TO_CELL(engine.player.x);
 	view.cellZ = WORLD_TO_CELL(engine.player.z);
-	initWBuffer();
+	//initWBuffer();
+	ClearVram();
 
 	drawBufferedCells();
 	drawDoors();
@@ -403,10 +404,10 @@ void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint
 		wstep = -1;
 	}
 
-	for (int x=sx1; x<=sx2; x++)
+	for (int16_t x=sx1; x<=sx2; x++)
 	{
-		//if(x == sx2)
-			//wallColour ^= ALT_WALL_COLOUR;
+		if(x == sx2)
+			wallColour ^= ALT_WALL_COLOUR;
 
 		uint8_t wallHeight = min(w, HALF_DISPLAYHEIGHT);
 

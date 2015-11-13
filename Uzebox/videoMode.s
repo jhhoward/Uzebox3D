@@ -23,6 +23,7 @@
 ;****************************************************	
 	
 .global displayBuffer
+.global overlayBuffer
 .global colourTable
 .global InitializeVideoMode
 .global DisplayLogo
@@ -33,6 +34,7 @@
 	.align 8
 	colourTable:			.space 512
 	displayBuffer:			.space SCREEN_WIDTH
+	overlayBuffer:			.space 1152; (SCREEN_WIDTH * 64 / 8)
 
 .section .text
 
@@ -40,9 +42,12 @@ sub_video_mode:
 
 	WAIT r16,1352
 	ldi YH,hi8(colourTable)
-
+	
 	clr r20
-	ldi r21, 32
+	ldi r21, 4
+
+	ldi XH,hi8(overlayBuffer)
+	ldi XL,lo8(overlayBuffer)
 
 ;*************************************************************
 ; Rendering main loop starts here
@@ -50,14 +55,27 @@ sub_video_mode:
 next_scan_line:	
 	rcall hsync_pulse 
 
-	WAIT r19,330 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
+;	WAIT r19,330 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
+;	WAIT r19,270 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
 
+	WAIT r19,258 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
+	ldi XH,hi8(overlayBuffer)
+	ldi XL,lo8(overlayBuffer)
+	ldi r18, (SCREEN_WIDTH / 8)
+	mov r19, r20
+	lsr r19
+	mul r18, r19
+	add XL, r0
+	adc XH, r1
+	
 	;***draw line***
 	rcall render_tile_line
 	
-	out _SFR_IO_ADDR(DATA_PORT),0 ; black
-	// between 161 and 165
-	WAIT r19, (4 * 144) - 161;
+	clr r0
+	out _SFR_IO_ADDR(DATA_PORT),r0 ; black
+	;// between 161 and 165
+	;WAIT r19, (4 * 144) - 161;
+	;WAIT r19, 
 
 #if 0
 	WAIT r19,122 - CENTER_ADJUSTMENT
@@ -68,24 +86,26 @@ next_scan_line:
 	;sbrc r20,0
 	;sbci YH,hi8(-(SCREEN_WIDTH/4))
 	
+	
 	inc r20
 	cpi r20,(SCREEN_HEIGHT)
 	mov r21, r20
 	brne next_scan_line
 #elif 1
-	WAIT r19,122 - CENTER_ADJUSTMENT
+	WAIT r19,118 - CENTER_ADJUSTMENT
 
-	;duplicate each line
-	;sbrc r20,0
-	;subi YL,lo8(-(SCREEN_WIDTH/4))
-	;sbrc r20,0
-	;sbci YH,hi8(-(SCREEN_WIDTH/4))
+	;duplicate each overlay line
+	sbrc r20,1
+	subi XL,lo8(-(SCREEN_WIDTH/8))
+	sbrc r20,1
+	sbci XH,hi8(-(SCREEN_WIDTH/8))
 	
 	inc r20
-	cpi r20,(32)
+	cpi r20,(60)
 	breq swap_colour_table
 	brge decr_counter
 	
+	;sbrs r20, 0
 	inc r21
 	rjmp next_scan_line
 	
@@ -94,9 +114,10 @@ next_scan_line:
 	rjmp next_scan_line
 	
 	decr_counter:
+	;sbrs r20, 0
 	dec r21
 	
-	cpi r20, 64
+	cpi r20, 120
 	brne next_scan_line
 #else
 	WAIT r19,99 - CENTER_ADJUSTMENT
@@ -158,83 +179,86 @@ next_scan_line:
 ; cycles  = 1495
 ;*************************************************
 render_tile_line:
-	ldi XL,lo8(displayBuffer)
-	ldi XH,hi8(displayBuffer)
+	ldi ZL,lo8(displayBuffer)
+	ldi ZH,hi8(displayBuffer)
 
 	;10 cycles per pixel
 	ldi r18,SCREEN_WIDTH/8
 	
-main_loop:		
-	ld YL, X+
+main_loop:
+	;mov r19, ZL
+	ld r19, X+
+	;ldi r19, 0 ;170
+	;nop
+	
+	ld YL, Z+
 	add YL, r21
 	ld r16, Y
-	;nop
-	;nop
-	;nop
-	;nop
+	sbrc r19, 0
+	ldi r16, 0
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 0
 	
-	ld YL, X+
+	ld YL, Z+
 	add YL, r21
 	ld r16, Y
-	;nop
-	;nop
-	;nop
-	;nop
+	sbrc r19, 1
+	ldi r16, 0
+	nop
+	nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 1
 
-	ld YL, X+
+	ld YL, Z+
 	add YL, r21
 	ld r16, Y
-	;nop
-	;nop
-	;nop
-	;nop
+	sbrc r19, 2
+	ldi r16, 0
+	nop
+	nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 2
 	
-	ld YL, X+
+	ld YL, Z+
 	add YL, r21
 	ld r16, Y
-	;nop
-	;nop
-	;nop
-	;nop
+	sbrc r19, 3
+	ldi r16, 0
+	nop
+	nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 3
 	
-	ld YL, X+
+	ld YL, Z+
 	add YL, r21
 	ld r16, Y
-	;nop
-	;nop
-	;nop
-	;nop
+	sbrc r19, 4
+	ldi r16, 0
+	nop
+	nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 4
 	
-	ld YL, X+
+	ld YL, Z+
 	add YL, r21
 	ld r16, Y
-	;nop
-	;nop
-	;nop
-	;nop
+	sbrc r19, 5
+	ldi r16, 0
+	nop
+	nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 5
 	
-	ld YL, X+
+	ld YL, Z+
 	add YL, r21
 	ld r16, Y
-	;nop
-	;nop
-	;nop
-	;nop
+	sbrc r19, 6
+	ldi r16, 0
+	nop
+	nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 6
 	
-	ld YL, X+
+	ld YL, Z+
 	add YL, r21
 	ld r16, Y
-	;nop
-	;nop
-	;nop
+	sbrc r19, 7
+	ldi r16, 0
 	dec r18
+	;nop
 	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 7
 
 	brne main_loop
