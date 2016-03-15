@@ -3,8 +3,13 @@
 #include "FixedMath.h"
 #include "TrigLUT.h"
 
+//#ifndef USE_8BIT_ANGLE
+#include <math.h>
+//#endif
+
 fixed_t FixedMath::Sin(angle_t x)
 {
+#ifdef USE_8BIT_ANGLE
 	if(x <= DEGREES_90)
 	{
 		return (fixed_t)(pgm_read_byte(&TrigLUT[x]));
@@ -21,6 +26,16 @@ fixed_t FixedMath::Sin(angle_t x)
 	{
 		return -1 * (fixed_t)(pgm_read_byte(&TrigLUT[DEGREES_360 - x]));
 	}
+#else
+	x = x & (DEGREES_360 - 1);
+	return (fixed_t)(sin((x * 3.141592654) / DEGREES_180) * FIXED_ONE + 0.5);
+#endif
+}
+
+fixed_t FixedMath::SinLong(angle_t x)
+{
+	x = x & (DEGREES_360 - 1);
+	return (fixed_t)(sin((x * 3.141592654) / DEGREES_180) * 8 * FIXED_ONE + 0.5);
 }
 
 int8_t clamp(int8_t x, int8_t lower, int8_t upper)

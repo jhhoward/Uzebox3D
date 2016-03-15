@@ -262,11 +262,11 @@ void Map::updateHorizontalSlice(int8_t offsetZ)
 {
 	streamData(m_streamBuffer, MapRead_Horizontal, bufferX, bufferZ + offsetZ, MAP_BUFFER_SIZE);
 
-	int8_t targetZ	= (bufferZ + offsetZ) & 0xf;
+	int8_t targetZ	= MAP_BUFFER_WRAP(bufferZ + offsetZ);
 
 	for(int8_t x = 0; x < MAP_BUFFER_SIZE; x++)
 	{
-		int8_t targetX = (bufferX + x) & 0xf;
+		int8_t targetX = MAP_BUFFER_WRAP(bufferX + x);
 		uint8_t read = streamIn(m_streamBuffer[x * 2], m_streamBuffer[x * 2 + 1], bufferX + x, bufferZ + offsetZ);
 
 		m_mapBuffer[targetZ * MAP_BUFFER_SIZE + targetX] = read;
@@ -277,11 +277,11 @@ void Map::updateVerticalSlice(int8_t offsetX)
 {
 	streamData(m_streamBuffer, MapRead_Vertical, bufferX + offsetX, bufferZ, MAP_BUFFER_SIZE);
 
-	int8_t targetX = (bufferX + offsetX) & 0xf;
+	int8_t targetX = MAP_BUFFER_WRAP(bufferX + offsetX);
 
 	for(int8_t z = 0; z < MAP_BUFFER_SIZE; z++)
 	{
-		int8_t targetZ = (bufferZ + z) & 0xf;
+		int8_t targetZ = MAP_BUFFER_WRAP(bufferZ + z);
 		uint8_t read = streamIn(m_streamBuffer[z * 2], m_streamBuffer[z * 2 + 1], bufferX + offsetX, bufferZ + z);
 
 		m_mapBuffer[targetZ * MAP_BUFFER_SIZE + targetX] = read;

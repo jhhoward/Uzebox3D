@@ -9,7 +9,8 @@
 
 #define NULL_QUEUE_ITEM 0xff
 #define RENDER_QUEUE_CAPACITY 8
-#define ALT_WALL_COLOUR (1 << 7)
+//#define ALT_WALL_COLOUR (1 << 7)
+#define ALT_WALL_COLOUR UZE_RGB(255, 255, 255)
 
 struct RenderQueueItem
 {
@@ -57,14 +58,14 @@ public:
 		return false;
 	}
 
-	void updateLevelColours(uint8_t* colours);
+	//void updateLevelColours(uint8_t* colours);
 
 
 private:
 	void initWBuffer();
 	void drawFloorAndCeiling();  
 	void drawCell(int8_t cellX, int8_t cellZ);
-	void drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t wallColour = 0);
+	void drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t wallColour = UZE_RGB(192, 192, 192));
 	void drawFrustumCells();
 	void drawBufferedCells();
 	void drawDoors();

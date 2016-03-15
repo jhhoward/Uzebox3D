@@ -10,8 +10,8 @@ Player::Player()
 
 void Player::update()
 {
-	int16_t cos_dir = FixedMath::Cos(direction);
-	int16_t sin_dir = FixedMath::Sin(direction);
+	int16_t cos_dir = FixedMath::CosLong(direction);
+	int16_t sin_dir = FixedMath::SinLong(direction);
 
 	if(hp > 0)
 	{
@@ -79,22 +79,22 @@ void Player::update()
     
 		if (Platform.readInput() & Input_Dpad_Down)
 		{
-			deltaX -= (movement * cos_dir) >> (FIXED_SHIFT);
-			deltaZ -= (movement * sin_dir) >> (FIXED_SHIFT);
+			deltaX -= (movement * cos_dir) >> (FIXED_SHIFT + 3);
+			deltaZ -= (movement * sin_dir) >> (FIXED_SHIFT + 3);
 		}
     
 		if (Platform.readInput() & Input_Dpad_Up)
 		{
-			deltaX += (movement * cos_dir) >> (FIXED_SHIFT);
-			deltaZ += (movement * sin_dir) >> (FIXED_SHIFT);
+			deltaX += (movement * cos_dir) >> (FIXED_SHIFT + 3);
+			deltaZ += (movement * sin_dir) >> (FIXED_SHIFT + 3);
 		}
     
 		if (Platform.readInput() & Input_Dpad_Left)
 		{
 			if (strafe)
 			{
-				deltaX += (movement * sin_dir) >> (FIXED_SHIFT);
-				deltaZ -= (movement * cos_dir) >> (FIXED_SHIFT);
+				deltaX += (movement * sin_dir) >> (FIXED_SHIFT + 3);
+				deltaZ -= (movement * cos_dir) >> (FIXED_SHIFT + 3);
 			}
 			else
 				direction -= turn;
@@ -104,8 +104,8 @@ void Player::update()
 		{
 			if (strafe)
 			{
-				deltaX -= (movement * sin_dir) >> (FIXED_SHIFT);
-				deltaZ += (movement * cos_dir) >> (FIXED_SHIFT);
+				deltaX -= (movement * sin_dir) >> (FIXED_SHIFT + 3);
+				deltaZ += (movement * cos_dir) >> (FIXED_SHIFT + 3);
 			}
 			else
 				direction += turn;
@@ -219,8 +219,8 @@ void Player::update()
 	}
 
 	// Update the stream position
-	int16_t projectedX = WORLD_TO_CELL(x) + cos_dir / 19;
-	int16_t projectedZ = WORLD_TO_CELL(z) + sin_dir / 19;
+	int16_t projectedX = WORLD_TO_CELL(x) + (cos_dir >> 3) / 19;
+	int16_t projectedZ = WORLD_TO_CELL(z) + (sin_dir >> 3) / 19;
 
 	engine.map.updateBufferPosition(projectedX - MAP_BUFFER_SIZE / 2, projectedZ - MAP_BUFFER_SIZE / 2);
 }

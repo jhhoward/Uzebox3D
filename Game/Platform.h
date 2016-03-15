@@ -32,7 +32,7 @@ public:
 //extern uint8_t* displayBuffer;
 //extern uint8_t* colourTable;
 extern uint8_t displayBuffer[];
-extern uint8_t colourTable[];
+//extern uint8_t colourTable[];
 extern uint8_t overlayBuffer[];
 
 #endif

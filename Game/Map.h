@@ -13,6 +13,8 @@
 
 #define MAP_OUT_OF_BOUNDS 0xff
 
+#define MAP_BUFFER_WRAP(x) ((x) % MAP_BUFFER_SIZE)
+
 enum MapRead_Orientation
 {
 	MapRead_Horizontal,
@@ -91,8 +93,8 @@ public:
 	uint8_t getTile(int8_t cellX, int8_t cellZ);
 	uint8_t getTileFast(int8_t cellX, int8_t cellZ)
 	{
-		cellX &= 0xf;
-		cellZ &= 0xf;
+		cellX = MAP_BUFFER_WRAP(cellX);
+		cellZ = MAP_BUFFER_WRAP(cellZ);
 		return m_mapBuffer[cellZ * MAP_BUFFER_SIZE + cellX];
 	}
 

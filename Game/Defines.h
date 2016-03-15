@@ -21,7 +21,7 @@
 
 // WIN32 specific
 #ifdef _WIN32
-#define ZOOM_SCALE 3
+#define ZOOM_SCALE 1
 #define ASPECT_RATIO 2
 
 #define PROGMEM
@@ -51,8 +51,8 @@
 #define sign(x) ((x) < 0 ? -1 : 1)
 #define mabs(x) ((x) < 0 ? -(x) : (x))
 
-#define CELL_SIZE 32
 #define CELL_SIZE_SHIFT 5
+#define CELL_SIZE (1 << CELL_SIZE_SHIFT)
 
 #if 0
 #define CELL_TO_WORLD(x) ((x) * CELL_SIZE)
@@ -85,7 +85,8 @@
 #define CAMERA_SCALE 1
 //#define WALL_HEIGHT 1.0f
 #define MOVEMENT 5 //7
-#define TURN 1 //3
+//#define TURN 1 //3
+#define TURN 2
 #define MIN_WALL_DISTANCE 8
 #define MAX_DOORS 12
 
@@ -105,5 +106,7 @@
 #define FONT_WIDTH 3
 #define FONT_HEIGHT 5
 #define FONT_GLYPH_BYTE_SIZE 2
+
+#define FOG_FUDGE 2.5
 
 #endif

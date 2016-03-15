@@ -16,7 +16,7 @@
 
 #include <stdio.h>
 
-uint8_t LevelColours[] PROGMEM =
+/*uint8_t LevelColours[] PROGMEM =
 {
 	UZE_RGB(127, 127, 127),		// Ceiling
 	UZE_RGB(64, 64, 64),		// Floor
@@ -25,13 +25,35 @@ uint8_t LevelColours[] PROGMEM =
 	UZE_RGB(192, 192, 192),		// Wall
 	UZE_RGB(255, 255, 255),		// Alt wall
 };
+*/
+
+uint8_t TextureColours[] PROGMEM =
+{
+#if 0
+	UZE_RGB(255, 255, 255), UZE_RGB(255, 255, 255),
+#else
+	UZE_RGB(140, 140, 140), UZE_RGB(100, 100, 100),
+	UZE_RGB(140, 140, 140), UZE_RGB(100, 100, 100),
+	UZE_RGB(188, 0, 0), UZE_RGB(152, 0, 0),
+	UZE_RGB(180, 112, 68), UZE_RGB(156, 96, 56),
+	UZE_RGB(0, 108, 163), UZE_RGB(0, 49, 73),
+	UZE_RGB(140, 140, 140), UZE_RGB(100, 100, 100),
+	UZE_RGB(0, 108, 163), UZE_RGB(0, 49, 73),
+	UZE_RGB(0, 108, 163), UZE_RGB(0, 49, 73),
+	UZE_RGB(0, 108, 163), UZE_RGB(0, 49, 73),
+	UZE_RGB(116, 76, 40), UZE_RGB(72, 56, 24),
+	UZE_RGB(116, 76, 40), UZE_RGB(72, 56, 24),
+	UZE_RGB(116, 76, 40), UZE_RGB(72, 56, 24),
+#endif
+};
 
 void Renderer::init()
 {
-	updateLevelColours(LevelColours);
+	//updateLevelColours(LevelColours);
 	drawWeapon();
 }
 
+/*
 void Renderer::updateLevelColours(uint8_t* colours)
 {
 	uint8_t* ptr = colourTable;
@@ -64,7 +86,7 @@ void Renderer::updateLevelColours(uint8_t* colours)
 	for(int n = 0; n < 63; n++)
 		(*ptr++) = pgm_read_byte(&colours[LevelColour_AltWall]);
 }
-
+*/
 
 void Renderer::drawDamage()
 {
@@ -306,7 +328,10 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 
 	if(tile >= Tile_FirstWall && tile <= Tile_LastWall)
 	{
-		uint8_t textureId = tile - Tile_FirstWall; //engine.map.getTextureId(cellX, cellZ);
+		uint8_t textureId = 2 * (tile - Tile_FirstWall); //engine.map.getTextureId(cellX, cellZ);
+
+		if(textureId >= sizeof(TextureColours))
+			textureId = 0;
 
 		if (view.z < worldZ)
 		{
@@ -316,12 +341,12 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 				if (view.z < worldZ)
 				{
 					if(!engine.map.isSolid(cellX, cellZ - 1))
-						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ);  // south wall door
+						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ, pgm_read_byte(&TextureColours[textureId]));  // south wall door
 				}
 				if (view.x > worldX + CELL_SIZE)
 				{
 					if(!engine.map.isSolid(cellX+1, cellZ))
-						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, ALT_WALL_COLOUR);  // east wall
+						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, pgm_read_byte(&TextureColours[textureId + 1]));  // east wall
 				}
 			}
 			else
@@ -330,12 +355,12 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 				if (view.z < worldZ)
 				{
 					if(!engine.map.isSolid(cellX, cellZ-1))
-						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ);  // south wall
+						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ, pgm_read_byte(&TextureColours[textureId]));  // south wall
 				}
 				if (view.x < worldX)
 				{
 					if(!engine.map.isSolid(cellX-1, cellZ))
-						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, ALT_WALL_COLOUR);  // west wall
+						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, pgm_read_byte(&TextureColours[textureId + 1]));  // west wall
 				}
 			}
 		}
@@ -347,12 +372,12 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 				if (view.z > worldZ + CELL_SIZE)
 				{
 					if(!engine.map.isSolid(cellX, cellZ+1))
-						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE);  // north wall
+						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE, pgm_read_byte(&TextureColours[textureId]));  // north wall
 				}
 				if (view.x > worldX + CELL_SIZE)
 				{
 					if(!engine.map.isSolid(cellX+1, cellZ))
-						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, ALT_WALL_COLOUR);  // east wall
+						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, pgm_read_byte(&TextureColours[textureId + 1]));  // east wall
 				}
 			}
 			else
@@ -361,12 +386,12 @@ void Renderer::drawCell(int8_t cellX, int8_t cellZ)
 				if (view.z > worldZ + CELL_SIZE)
 				{
 					if(!engine.map.isSolid(cellX, cellZ+1))
-						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE);  // north wall
+						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE, pgm_read_byte(&TextureColours[textureId]));  // north wall
 				}
 				if (view.x < worldX)
 				{
 					if(!engine.map.isSolid(cellX-1, cellZ))
-						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, ALT_WALL_COLOUR);  // west wall
+						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, pgm_read_byte(&TextureColours[textureId + 1]));  // west wall
 				}
 			}
 		}
@@ -431,14 +456,22 @@ void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint
 
 	for (int16_t x=sx1; x<=sx2; x++)
 	{
-		if(x == sx2)
-			wallColour ^= ALT_WALL_COLOUR;
-
 		uint8_t wallHeight = min(w, HALF_DISPLAYHEIGHT);
 
-		if (x >= 0 && x < DISPLAYWIDTH && wallHeight > (displayBuffer[x] & 0x7F))
+		if (x >= 0 && x < DISPLAYWIDTH && wallHeight > displayBuffer[x * 2])
 		{        
-			displayBuffer[x] = wallHeight | wallColour;
+			displayBuffer[x * 2] = wallHeight;
+			displayBuffer[x * 2 + 1] = wallColour;
+#if 0
+			uint8_t r = (wallColour & 7) << 5;
+			uint8_t g = (wallColour & 56) << 2;
+			uint8_t b = (wallColour & 192);
+			r = min(r, (r * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
+			g = min(g, (g * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
+			b = min(b, (b * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
+			displayBuffer[x * 2 + 1] = UZE_RGB(r, g, b);
+#endif
+
 		}
 
 		werror -= dw;

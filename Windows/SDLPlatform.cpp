@@ -5,8 +5,8 @@
 
 SDLPlatform Platform;
 
-uint8_t displayBuffer[DISPLAYWIDTH];
-uint8_t colourTable[512];
+uint8_t displayBuffer[DISPLAYWIDTH * 2];
+//uint8_t colourTable[512];
 uint8_t overlayBuffer[DISPLAYWIDTH * DISPLAYHEIGHT / 16];
 
 //uint8_t _displayBuffer[DISPLAYWIDTH];
@@ -144,14 +144,122 @@ void SDLPlatform::drawPixel(uint8_t x, uint8_t y, uint8_t colour)
 }
 
 
+const uint8_t ditherMask[4] =
+{
+	51, 153,
+	204, 102
+};
+
+uint8_t Dither(uint8_t x, uint8_t y, uint8_t alpha, uint8_t i, uint8_t j)
+{
+	uint8_t index = (j & 1) * 2 + (i & 1);
+	if(alpha < ditherMask[index])
+		return x;
+	else return y;
+}
+
+uint8_t GradientColours[256];
+uint8_t NumGradientColours = 0;
+
+void GenTable()
+{
+	uint8_t lastCol = UZE_RGB(0, 0, 0);
+	NumGradientColours = 1;
+	GradientColours[0] = lastCol;
+
+	for(int n = 0; n < 255; n++)
+	{
+		uint8_t col = UZE_RGB(n, n, n);
+
+		if(lastCol != col)
+		{
+			lastCol = col;
+			GradientColours[NumGradientColours++] = col;
+		}
+	}
+}
+
 void SDLPlatform::draw()
 {
+	uint8_t offset = 127 - (DISPLAYHEIGHT / 2);
+	uint8_t floorColour = UZE_RGB(32, 64, 32);
+//	uint8_t floorColour = UZE_RGB(64, 64, 64);
+//	uint8_t ceilingColour = UZE_RGB(32, 32, 32);
+	uint8_t ceilingColour = UZE_RGB(0, 0, 64);
+	uint8_t outer = ceilingColour;
+
+	GenTable();
+
 	for(int y = 0; y < DISPLAYHEIGHT; y++)
 	{
+		if(y >= DISPLAYHEIGHT / 2)
+		{
+			outer = floorColour;
+
+			offset --;
+
+			uint8_t gradCol = ((y - (DISPLAYHEIGHT / 2)) * 255) / (DISPLAYHEIGHT / 2);
+			outer = Dither(floorColour, 0, gradCol, 0, y);
+			//outer = UZE_RGB(gradCol, gradCol, gradCol);
+		}
+		else
+		{
+			offset ++;
+
+			//uint8_t gradCol = (((DISPLAYHEIGHT / 2) - y) * 255) / (DISPLAYHEIGHT / 2);
+			//outer = UZE_RGB(gradCol, gradCol, gradCol);
+		}
+
 		for(int x = 0; x < DISPLAYWIDTH; x++)
 		{
-			int offset = y < 64 ? y : 383 - y;
-			uint8_t colour = colourTable[offset + displayBuffer[x]];
+			if(y >= DISPLAYHEIGHT / 2)
+			{
+#if 0
+				uint8_t gradCol = ((y - (DISPLAYHEIGHT / 2)) * 256) / (DISPLAYHEIGHT / 2);
+
+				uint8_t posA = (gradCol * NumGradientColours) / 256;
+				uint8_t posB = posA + 1;
+				uint8_t alpha = ((gradCol - ((posA * 256) / NumGradientColours)) * 256) / (256 / NumGradientColours);
+
+				posB = min(NumGradientColours - 1, posB);
+
+				outer = Dither(GradientColours[posA], GradientColours[posB], alpha, x, y);
+				outer = GradientColours[posA];
+#elif 0
+				uint8_t r = (floorColour & 7) << 5;
+				uint8_t g = (floorColour & 56) << 2;
+				uint8_t b = (floorColour & 192);
+				uint8_t wallHeight = 128 - offset;
+				r = min(r, (r * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
+				g = min(g, (g * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
+				b = min(b, (b * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
+				outer = UZE_RGB(r, g, b);
+#else
+				outer = floorColour;
+#endif
+				//outer = UZE_RGB(gradCol, gradCol, gradCol);
+			}
+			else
+			{
+				uint8_t r = (ceilingColour & 7) << 5;
+				uint8_t g = (ceilingColour & 56) << 2;
+				uint8_t b = (ceilingColour & 192);
+				uint8_t wallHeight = 128 - offset;
+				r = min(r, (r * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
+				g = min(g, (g * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
+				b = min(b, (b * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
+				outer = UZE_RGB(r, g, b);
+				outer = ceilingColour;
+			}
+
+
+			uint8_t colour = displayBuffer[x * 2 + 1];
+
+			uint8_t geo = displayBuffer[x * 2] + offset;
+			if((geo & 0x80) == 0)
+			{
+				colour = outer;
+			}
 
 			int overlayIndex = (((y >> 1) * DISPLAYWIDTH) + x) / 8;
 			uint8_t overlay = overlayBuffer[overlayIndex];
@@ -169,6 +277,6 @@ void SDLPlatform::draw()
 
 void ClearVram()
 {
-	for(int n = 0; n < DISPLAYWIDTH; n++)
+	for(int n = 0; n < DISPLAYWIDTH * 2; n++)
 		displayBuffer[n] = 0;
 }
