@@ -9,6 +9,8 @@ uint8_t displayBuffer[DISPLAYWIDTH * 2];
 //uint8_t colourTable[512];
 uint8_t overlayBuffer[DISPLAYWIDTH * DISPLAYHEIGHT / 16];
 
+uint8_t outerColours[DISPLAYHEIGHT];
+
 //uint8_t _displayBuffer[DISPLAYWIDTH];
 //uint8_t _colourTable[512];
 
@@ -252,6 +254,7 @@ void SDLPlatform::draw()
 				outer = ceilingColour;
 			}
 
+			outer = outerColours[y];
 
 			uint8_t colour = displayBuffer[x * 2 + 1];
 

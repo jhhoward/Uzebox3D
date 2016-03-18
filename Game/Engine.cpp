@@ -6,10 +6,8 @@ void Engine::init()
 {
 	menu.init();
 	difficulty = Difficulty_Medium;
-	map.initStreaming();
 	renderer.init();
 	
-	map.currentLevel = 0;
 	startLevel();
 	// hacks
 	//map.currentLevel = 2;
@@ -29,6 +27,8 @@ void Engine::startLevel(bool resetPlayer)
 	if(resetPlayer)
 	{
 		player.hp = 0;
+		player.x = 0;
+		player.z = 0;
 	}
 	gameState = GameState_StartingLevel;
 }
@@ -45,7 +45,7 @@ void Engine::startingLevel()
 		actors[n].spawnId = 0xff;
 	}
 
-	map.init();
+	level.init();
 	renderer.init();
 	player.init();
 	player.update(); // To update streaming position for first frame
@@ -64,7 +64,7 @@ void Engine::update()
 
 			if(player.hp > 0)
 			{
-				map.update();
+				level.update();
 #if 0
 				for(int n = 0; n < MAX_ACTIVE_ACTORS; n++)
 				{
@@ -87,7 +87,7 @@ void Engine::update()
 		}
 		break;
 	case GameState_FinishedLevel:
-		map.currentLevel++;
+//		map.currentLevel++;
 		startLevel(false);
 		break;
 	case GameState_StartingLevel:

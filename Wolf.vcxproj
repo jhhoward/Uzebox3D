@@ -15,7 +15,7 @@
     <ClInclude Include="Game\Defines.h" />
     <ClInclude Include="Game\Engine.h" />
     <ClInclude Include="Game\FixedMath.h" />
-    <ClInclude Include="Game\Map.h" />
+    <ClInclude Include="Game\Level.h" />
     <ClInclude Include="Game\Menu.h" />
     <ClInclude Include="Game\Platform.h" />
     <ClInclude Include="Game\Player.h" />
@@ -31,7 +31,7 @@
     <ClCompile Include="Game\Actor.cpp" />
     <ClCompile Include="Game\Engine.cpp" />
     <ClCompile Include="Game\FixedMath.cpp" />
-    <ClCompile Include="Game\Map.cpp" />
+    <ClCompile Include="Game\Level.cpp" />
     <ClCompile Include="Game\Menu.cpp" />
     <ClCompile Include="Game\Player.cpp" />
     <ClCompile Include="Game\Renderer.cpp" />

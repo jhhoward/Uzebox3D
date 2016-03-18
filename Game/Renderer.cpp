@@ -27,6 +27,28 @@
 };
 */
 
+uint8_t FogBands[] =
+{
+	//0, 0, 0
+	DISPLAYHEIGHT / 4,
+	DISPLAYHEIGHT / 8,
+	DISPLAYHEIGHT / 16
+};
+
+uint8_t PaletteColours[] PROGMEM =
+{
+	// White / grey
+	RGB332(7, 7, 3), RGB332(5, 5, 2), RGB332(2, 2, 1),
+	RGB332(6, 6, 3), RGB332(4, 4, 2), RGB332(2, 2, 1),
+	RGB332(5, 5, 2), RGB332(3, 3, 1), RGB332(1, 1, 0),
+
+	// Lime green
+	RGB332(6, 7, 0), RGB332(4, 5, 0), RGB332(1, 2, 0),
+	RGB332(5, 6, 0), RGB332(3, 4, 0), RGB332(1, 2, 0),
+	RGB332(4, 5, 0), RGB332(2, 3, 0), RGB332(0, 1, 0),
+
+};
+
 uint8_t TextureColours[] PROGMEM =
 {
 #if 0
@@ -51,6 +73,37 @@ void Renderer::init()
 {
 	//updateLevelColours(LevelColours);
 	drawWeapon();
+
+	int floorPaletteColour = 15;
+	uint8_t skyColour = RGB332(1, 1, 1);
+
+	for(int n = 0; n < DISPLAYHEIGHT; n++)
+	{
+		if(n < DISPLAYHEIGHT / 2)
+		{
+			outerColours[n] = skyColour;
+		}
+		else
+		{
+			int height = n - DISPLAYHEIGHT / 2 + 1;
+			if(height < FogBands[2])
+			{
+				outerColours[n] = RGB332(0, 0, 0);
+			}
+			else if(height < FogBands[1])
+			{
+				outerColours[n] = pgm_read_byte(&PaletteColours[floorPaletteColour + 2]);
+			}
+			else if(height < FogBands[0])
+			{
+				outerColours[n] = pgm_read_byte(&PaletteColours[floorPaletteColour + 1]);
+			}
+			else
+			{
+				outerColours[n] = pgm_read_byte(&PaletteColours[floorPaletteColour]);
+			}
+		}
+	}
 }
 
 /*
@@ -188,109 +241,18 @@ void Renderer::drawFrame()
 	view.clipCos = FixedMath::Cos(-engine.player.direction + DEGREES_90 / 2);
 	view.clipSin = FixedMath::Sin(-engine.player.direction + DEGREES_90 / 2);
 
-	view.cellX = WORLD_TO_CELL(engine.player.x);
-	view.cellZ = WORLD_TO_CELL(engine.player.z);
 	//initWBuffer();
 	ClearVram();
 
-	drawBufferedCells();
-	drawDoors();
+	drawWall(50, -50, -50, -50, 0);
+	drawWall(-50, 50, 50, 50, 0);
+	drawWall(50, 50, 50, -50, 3);
+	drawWall(-50, -50, -50, 50, 3);
 
-
-#if 0
-	for(int8_t n = 0; n < MAX_ACTIVE_ACTORS; n++)
-	{
-		if(engine.actors[n].type != ActorType_Empty && !engine.actors[n].flags.frozen)
-		{
-			engine.actors[n].draw();
-		}
-	}
-
-	for(int8_t n = 0; n < MAX_ACTIVE_ITEMS; n++)
-	{
-		if(engine.map.items[n].type != 0)
-		{
-			int16_t x = CELL_TO_WORLD(engine.map.items[n].x) + CELL_SIZE / 2, z = CELL_TO_WORLD(engine.map.items[n].z) + CELL_SIZE / 2;
-			queueSprite((SpriteFrame*) &Data_itemSprites_frames[(engine.map.items[n].type - Tile_FirstItem)], (uint8_t*)Data_itemSprites, x, z);
-		}
-	}
-#endif
-
-#if 0
-	for(uint8_t item = renderQueueHead; item != NULL_QUEUE_ITEM; item = renderQueue[item].next)
-	{
-		drawQueuedSprite(item);
-	}
-
-	drawWeapon();
-	drawDamage();
-
-	// Draw HUD
-	uint8_t hudHeight = DISPLAYHEIGHT - FONT_HEIGHT;
-	drawGlyph('+' - FIRST_FONT_GLYPH, 0, hudHeight);
-	drawInt(engine.player.hp, (FONT_WIDTH + 1) * 3, hudHeight);
-	drawGlyph('*' - FIRST_FONT_GLYPH, DISPLAYWIDTH - (FONT_WIDTH + 1) * 4, hudHeight);
-	drawInt(engine.player.weapon.ammo, DISPLAYWIDTH - (FONT_WIDTH + 1), hudHeight);
-	//drawString(PSTR("*99"), DISPLAYWIDTH - (FONT_WIDTH + 1) * 3, DISPLAYHEIGHT - FONT_HEIGHT);
-	/*int y = 4;
-	drawString(PSTR("* CAN I PLAY, DADDY?"), 0, y); y += FONT_HEIGHT + 1;
-	drawString(PSTR("  DON'T HURT ME!"), 0, y); y += FONT_HEIGHT + 1;
-	drawString(PSTR("  BRING 'EM ON!"), 0, y); y += FONT_HEIGHT + 1;
-	drawString(PSTR("  I AM DEATH"), 0, y); y += FONT_HEIGHT + 1;
-	drawString(PSTR("       INCARNATE!"), 0, y); y += FONT_HEIGHT + 1;*/
-#endif
-}
-
-void Renderer::drawBufferedCells()
-{
-	int8_t xd, zd;
-	int8_t x1, z1, x2, z2;
-
-	if(view.rotCos > 0)
-	{
-		x1 = engine.map.bufferX;
-		x2 = x1 + MAP_BUFFER_SIZE;
-		xd = 1;
-	}
-	else
-	{
-		x2 = engine.map.bufferX - 1;
-		x1 = x2 + MAP_BUFFER_SIZE;
-		xd = -1;
-	}
-	if(view.rotSin < 0)
-	{
-		z1 = engine.map.bufferZ;
-		z2 = z1 + MAP_BUFFER_SIZE;
-		zd = 1;
-	}
-	else
-	{
-		z2 = engine.map.bufferZ - 1;
-		z1 = z2 + MAP_BUFFER_SIZE;
-		zd = -1;
-	}
-
-	if(mabs(view.rotCos) < mabs(view.rotSin))
-	{
-		for(int8_t z = z1; z != z2; z += zd)
-		{
-			for(int8_t x = x1; x != x2; x+= xd)
-			{
-				drawCell(x, z);
-			}
-		}
-	}
-	else
-	{
-		for(int8_t x = x1; x != x2; x+= xd)
-		{
-			for(int8_t z = z1; z != z2; z += zd)
-			{
-				drawCell(x, z);
-			}
-		}
-	}
+	drawWall(-500, -500, 500, -500, 6);
+	drawWall(500, 500, -500, 500, 6);
+	drawWall(500, -500, 500, 500, 3);
+	drawWall(-500, 500, -500, -500, 3);
 }
 
 void Renderer::initWBuffer()
@@ -299,114 +261,18 @@ void Renderer::initWBuffer()
 		displayBuffer[i] = 0;
 }
 
-
-void Renderer::drawCell(int8_t cellX, int8_t cellZ)
-{
-	// clip cells out of frustum view
-	if(isFrustrumClipped(cellX, cellZ))
-		return;
-
-	uint8_t tile = engine.map.getTileFast(cellX, cellZ);
-	if (tile == 0)
-		return;
-
-	int16_t worldX = CELL_TO_WORLD(cellX);
-	int16_t worldZ = CELL_TO_WORLD(cellZ);
-
-#if 0
-	if(tile >= Tile_FirstDecoration && tile <= Tile_LastDecoration)
-	{
-		queueSprite((SpriteFrame*) &Data_decorations_frames[tile - Tile_FirstDecoration], (uint8_t*)Data_decorations, worldX + CELL_SIZE / 2, worldZ + CELL_SIZE / 2);
-		return;
-	}
-	if(tile >= Tile_FirstBlockingDecoration && tile <= Tile_LastBlockingDecoration)
-	{
-		queueSprite((SpriteFrame*) &Data_blockingDecorations_frames[tile - Tile_FirstBlockingDecoration], (uint8_t*)Data_blockingDecorations, worldX + CELL_SIZE / 2, worldZ + CELL_SIZE / 2);
-		return;
-	}
-#endif
-
-	if(tile >= Tile_FirstWall && tile <= Tile_LastWall)
-	{
-		uint8_t textureId = 2 * (tile - Tile_FirstWall); //engine.map.getTextureId(cellX, cellZ);
-
-		if(textureId >= sizeof(TextureColours))
-			textureId = 0;
-
-		if (view.z < worldZ)
-		{
-			if (view.x > worldX)
-			{
-				// north west quadrant
-				if (view.z < worldZ)
-				{
-					if(!engine.map.isSolid(cellX, cellZ - 1))
-						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ, pgm_read_byte(&TextureColours[textureId]));  // south wall door
-				}
-				if (view.x > worldX + CELL_SIZE)
-				{
-					if(!engine.map.isSolid(cellX+1, cellZ))
-						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, pgm_read_byte(&TextureColours[textureId + 1]));  // east wall
-				}
-			}
-			else
-			{
-				// north east quadrant
-				if (view.z < worldZ)
-				{
-					if(!engine.map.isSolid(cellX, cellZ-1))
-						drawWall(worldX, worldZ, worldX + CELL_SIZE, worldZ, pgm_read_byte(&TextureColours[textureId]));  // south wall
-				}
-				if (view.x < worldX)
-				{
-					if(!engine.map.isSolid(cellX-1, cellZ))
-						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, pgm_read_byte(&TextureColours[textureId + 1]));  // west wall
-				}
-			}
-		}
-		else
-		{
-			if (view.x > worldX)
-			{
-				// south west quadrant
-				if (view.z > worldZ + CELL_SIZE)
-				{
-					if(!engine.map.isSolid(cellX, cellZ+1))
-						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE, pgm_read_byte(&TextureColours[textureId]));  // north wall
-				}
-				if (view.x > worldX + CELL_SIZE)
-				{
-					if(!engine.map.isSolid(cellX+1, cellZ))
-						drawWall(worldX + CELL_SIZE, worldZ, worldX + CELL_SIZE, worldZ + CELL_SIZE, pgm_read_byte(&TextureColours[textureId + 1]));  // east wall
-				}
-			}
-			else
-			{
-				// south east quadrant
-				if (view.z > worldZ + CELL_SIZE)
-				{
-					if(!engine.map.isSolid(cellX, cellZ+1))
-						drawWall(worldX + CELL_SIZE, worldZ + CELL_SIZE, worldX, worldZ + CELL_SIZE, pgm_read_byte(&TextureColours[textureId]));  // north wall
-				}
-				if (view.x < worldX)
-				{
-					if(!engine.map.isSolid(cellX-1, cellZ))
-						drawWall(worldX, worldZ + CELL_SIZE, worldX, worldZ, pgm_read_byte(&TextureColours[textureId + 1]));  // west wall
-				}
-			}
-		}
-	}
-}
+//typedef int32_t intp_t;
+typedef int16_t intp_t;
 
 // draws one side of a cell
-void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t wallColour)
+void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint8_t paletteColour)
 {
 	// find position of wall edges relative to eye
 
-	int16_t z2 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x1-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z1-view.z)));
-	int16_t x2 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x1-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z1-view.z)));
-	int16_t z1 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x2-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z2-view.z)));
-	int16_t x1 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x2-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z2-view.z)));
+	intp_t z2 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x1-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z1-view.z)));
+	intp_t x2 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x1-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z1-view.z)));
+	intp_t z1 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x2-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z2-view.z)));
+	intp_t x1 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x2-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z2-view.z)));
 
 	// clip to the front pane
 	if ((z1<CLIP_PLANE) && (z2<CLIP_PLANE))
@@ -423,25 +289,37 @@ void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint
 	}
 
 	// apply perspective projection
-	int16_t vx1 = (int16_t)(x1 * NEAR_PLANE * CAMERA_SCALE / z1);  
-	int16_t vx2 = (int16_t)(x2 * NEAR_PLANE * CAMERA_SCALE / z2); 
+	intp_t vx1 = (intp_t)(x1 * NEAR_PLANE * CAMERA_SCALE / z1);  
+	intp_t vx2 = (intp_t)(x2 * NEAR_PLANE * CAMERA_SCALE / z2); 
 
 	// transform the end points into screen space
-	int16_t sx1 = (int16_t)((DISPLAYWIDTH / 2) + vx1);
-	int16_t sx2 = (int16_t)((DISPLAYWIDTH / 2) + vx2) - 1;
+	intp_t sx1 = (intp_t)((DISPLAYWIDTH / 2) + vx1);
+	intp_t sx2 = (intp_t)((DISPLAYWIDTH / 2) + vx2) - 1;
 
-	// clamp to the visible portion of the screen
-	int16_t firstx = max(sx1, 0);
-	int16_t lastx = min(sx2, DISPLAYWIDTH-1);
-	if (lastx < firstx)
+	// cull
+	if(sx2 < 0 || sx1 >= DISPLAYWIDTH || sx1 > sx2)
 		return;
 
-	int16_t w1 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z1);
-	int16_t w2 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z2);
-	int16_t dx = sx2 - sx1;
-	int16_t werror = dx >> 1;
-	int16_t w = w1;
-	int16_t dw, wstep;
+	intp_t w1 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z1);
+	intp_t w2 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z2);
+		
+	// clamp to the visible portion of the screen
+	if(sx1 < 0)
+	{
+		w1 = w1 + ((w2 - w1) * (0 - sx1)) / (sx2 - sx1);
+		sx1 = 0;
+	}
+
+	if(sx2 > DISPLAYWIDTH - 1)
+	{
+		w2 = w1 + ((w2 - w1) * ((DISPLAYWIDTH - 1) - sx1)) / (sx2 - sx1);
+		sx2 = DISPLAYWIDTH - 1;
+	}
+	
+	intp_t dx = sx2 - sx1;
+	intp_t werror = dx / 2;//dx >> 1;
+	intp_t w = w1;
+	intp_t dw, wstep;
 
 	if(w1 < w2)
 	{
@@ -458,10 +336,26 @@ void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint
 	{
 		uint8_t wallHeight = min(w, HALF_DISPLAYHEIGHT);
 
-		if (x >= 0 && x < DISPLAYWIDTH && wallHeight > displayBuffer[x * 2])
+		if (wallHeight > displayBuffer[x * 2])
 		{        
 			displayBuffer[x * 2] = wallHeight;
-			displayBuffer[x * 2 + 1] = wallColour;
+
+			if(wallHeight < FogBands[2])
+			{
+				displayBuffer[x * 2 + 1] = RGB332(0, 0, 0);
+			}
+			else if(wallHeight < FogBands[1])
+			{
+				displayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour + 2]);
+			}
+			else if(wallHeight < FogBands[0])
+			{
+				displayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour + 1]);
+			}
+			else
+			{
+				displayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour]);
+			}
 #if 0
 			uint8_t r = (wallColour & 7) << 5;
 			uint8_t g = (wallColour & 56) << 2;
@@ -482,99 +376,6 @@ void Renderer::drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint
 			{
 				w += wstep;
 				werror += dx;
-			}
-		}
-	}
-}
-
-void Renderer::drawDoors()
-{
-	for(int n = 0; n < MAX_DOORS; n++)
-	{
-		Door& door = engine.map.doors[n];
-		uint8_t textureId = door.texture;
-
-		if(!engine.map.isValid(door.x, door.z))
-		{
-			continue;
-		}
-		
-		if(door.type == DoorType_SecretPushWall)
-		{
-			int16_t doorX = CELL_TO_WORLD(door.x);
-			int16_t doorZ = CELL_TO_WORLD(door.z);
-
-			switch(door.state)
-			{
-			case DoorState_PushNorth:
-				doorZ -= door.open;
-				break;
-			case DoorState_PushEast:
-				doorX += door.open;
-				break;
-			case DoorState_PushSouth:
-				doorZ += door.open;
-				break;
-			case DoorState_PushWest:
-				doorX -= door.open;
-				break;
-			}
-
-			if(view.x < doorX)
-			{
-				drawWall(doorX, doorZ + CELL_SIZE, doorX, doorZ);
-			}
-			else if(view.x > doorX)
-			{
-				drawWall(doorX + CELL_SIZE, doorZ, doorX + CELL_SIZE, doorZ + CELL_SIZE);
-			}
-			if(view.z > doorZ + CELL_SIZE)
-			{
-				drawWall(doorX + CELL_SIZE, doorZ + CELL_SIZE, doorX, doorZ + CELL_SIZE);
-			}
-			else if(view.z < doorZ)
-			{
-				drawWall(doorX, doorZ, doorX + CELL_SIZE, doorZ);
-			}
-		}
-		else
-		{
-			int offset = door.open;
-			if(offset >= 16)
-			{
-				continue;
-			}
-
-			int16_t worldX = CELL_TO_WORLD(door.x);
-			int16_t worldZ = CELL_TO_WORLD(door.z);
-
-			if((door.type & 0x1) == 0)
-			{
-				worldX += CELL_SIZE / 2;
-				if(view.x < worldX)
-				{
-					drawWall(worldX, worldZ + CELL_SIZE, 
-						worldX, worldZ + offset * 2);
-				}
-				else
-				{
-					drawWall(worldX, worldZ + offset * 2, 
-						worldX, worldZ + CELL_SIZE);
-				}
-			}
-			else
-			{
-				worldZ += CELL_SIZE / 2;
-				if(view.z > worldZ)
-				{
-					drawWall(worldX + CELL_SIZE, worldZ, 
-						worldX + offset * 2, worldZ);
-				}
-				else
-				{
-					drawWall(worldX + offset * 2, worldZ, 
-						worldX + CELL_SIZE, worldZ);
-				}
 			}
 		}
 	}

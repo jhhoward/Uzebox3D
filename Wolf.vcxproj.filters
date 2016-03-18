@@ -24,9 +24,6 @@
     <ClInclude Include="Game\FixedMath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Game\Map.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Game\Platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -60,15 +57,15 @@
     <ClInclude Include="Game\Menu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Game\Level.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Game\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game\FixedMath.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game\Map.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game\Player.cpp">
@@ -84,6 +81,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game\Menu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Level.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -32,7 +32,7 @@ void Actor::update()
 	switch(state)
 	{
 	case ActorState_Idle:
-		if(engine.map.isClearLine(x, z, engine.player.x, engine.player.z))
+		//if(engine.map.isClearLine(x, z, engine.player.x, engine.player.z))
 		{
 			switchState(ActorState_Active);
 		}
@@ -110,7 +110,7 @@ void Actor::updateFrozenState()
 	int cellX = WORLD_TO_CELL(x);
 	int cellZ = WORLD_TO_CELL(z);
 
-	flags.frozen = cellX < engine.map.bufferX || cellZ < engine.map.bufferZ || cellX >= engine.map.bufferX + MAP_BUFFER_SIZE || cellZ >= engine.map.bufferZ + MAP_BUFFER_SIZE;
+	//flags.frozen = cellX < engine.map.bufferX || cellZ < engine.map.bufferZ || cellX >= engine.map.bufferX + MAP_BUFFER_SIZE || cellZ >= engine.map.bufferZ + MAP_BUFFER_SIZE;
 }
 
 void Actor::damage(int amount)
@@ -127,7 +127,7 @@ void Actor::damage(int amount)
 	if(hp == 0)
 	{
 		switchState(ActorState_Dying);
-		engine.map.markActorKilled(spawnId);
+		//engine.map.markActorKilled(spawnId);
 		dropItem(Tile_Item_Clip);
 	}
 	else
@@ -184,12 +184,12 @@ void Actor::dropItem(uint8_t itemType)
 
 bool Actor::tryDropItem(uint8_t itemType, int cellX, int cellZ)
 {
-	uint8_t tile = engine.map.getTile(cellX, cellZ);
-	if(tile == 0)
+	//uint8_t tile = engine.map.getTile(cellX, cellZ);
+	/*if(tile == 0)
 	{
-		engine.map.placeItem(itemType, cellX, cellZ, DYNAMIC_ITEM_ID);
+		//engine.map.placeItem(itemType, cellX, cellZ, DYNAMIC_ITEM_ID);
 		return true;
-	}
+	}*/
 	return false;
 }
 
@@ -207,11 +207,11 @@ bool Actor::tryMove()
 {
 	int movement = 1;
 
-	if(engine.map.isBlocked(targetCellX, targetCellZ))
+	/*if(engine.map.isBlocked(targetCellX, targetCellZ))
 	{
 		engine.map.openDoorsAt(targetCellX, targetCellZ, Direction_None);
 		return false;
-	}
+	}*/
 
 	int16_t targetX = CELL_TO_WORLD(targetCellX) + CELL_SIZE / 2;
 	int16_t targetZ = CELL_TO_WORLD(targetCellZ) + CELL_SIZE / 2;
@@ -238,13 +238,13 @@ bool Actor::tryMove()
 
 bool Actor::tryPickCell(int8_t newX, int8_t newZ)
 {
-	if(engine.map.isBlocked(newX, newZ) && !engine.map.isDoor(newX, newZ))
+	/*if(engine.map.isBlocked(newX, newZ) && !engine.map.isDoor(newX, newZ))
 		return false;
 	if(engine.map.isBlocked(targetCellX, newZ) && !engine.map.isDoor(targetCellX, newZ))
 		return false;
 	if(engine.map.isBlocked(newX, targetCellZ) && !engine.map.isDoor(newX, targetCellZ))
 		return false;
-
+		
 	for(int n = 0; n < MAX_ACTIVE_ACTORS; n++)
 	{
 		if(this != &engine.actors[n] && engine.actors[n].type != ActorType_Empty && engine.actors[n].hp > 0)
@@ -256,7 +256,7 @@ bool Actor::tryPickCell(int8_t newX, int8_t newZ)
 
 	targetCellX = newX;
 	targetCellZ = newZ;
-
+	*/
 	return true;
 }
 
@@ -310,18 +310,18 @@ int8_t Actor::getPlayerCellDistance()
 
 bool Actor::shouldShootPlayer()
 {
-	if(engine.map.isClearLine(x, z, engine.player.x, engine.player.z))
+	/*if(engine.map.isClearLine(x, z, engine.player.x, engine.player.z))
 	{
 		int chance = 16 / getPlayerCellDistance();
 
 		return getRandomNumber() < chance;
-	}
+	}*/
 	return false;
 }
 
 void Actor::shootPlayer()
 {
-	if(engine.map.isClearLine(x, z, engine.player.x, engine.player.z))
+	/*if(engine.map.isClearLine(x, z, engine.player.x, engine.player.z))
 	{
 		int8_t dist = getPlayerCellDistance();
 		int hitchance = 256 - dist * 16;
@@ -353,5 +353,5 @@ void Actor::shootPlayer()
 				}
 			}
 		}
-	}
+	}*/
 }

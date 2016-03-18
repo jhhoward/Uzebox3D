@@ -117,7 +117,7 @@ void Player::update()
 		//int16_t projectedZ = z / CELL_SIZE;
 
 		// Check for doors
-		int8_t cellX = WORLD_TO_CELL(x);
+/*		int8_t cellX = WORLD_TO_CELL(x);
 		int8_t cellZ = WORLD_TO_CELL(z);
 
 		engine.map.openDoorsAt(cellX, cellZ, Direction_None);
@@ -190,7 +190,7 @@ void Player::update()
 					engine.map.markItemCollected(engine.map.items[n].spawnId);
 				}
 			}
-		}
+		}*/
 	}
 	else
 	{
@@ -219,10 +219,10 @@ void Player::update()
 	}
 
 	// Update the stream position
-	int16_t projectedX = WORLD_TO_CELL(x) + (cos_dir >> 3) / 19;
+	/*int16_t projectedX = WORLD_TO_CELL(x) + (cos_dir >> 3) / 19;
 	int16_t projectedZ = WORLD_TO_CELL(z) + (sin_dir >> 3) / 19;
 
-	engine.map.updateBufferPosition(projectedX - MAP_BUFFER_SIZE / 2, projectedZ - MAP_BUFFER_SIZE / 2);
+	engine.map.updateBufferPosition(projectedX - MAP_BUFFER_SIZE / 2, projectedZ - MAP_BUFFER_SIZE / 2);*/
 }
 
 #ifdef USE_SIMPLE_COLLISIONS
@@ -246,10 +246,11 @@ bool Player::isPlayerColliding()
 
 bool Player::isPointColliding(int16_t pointX, int16_t pointZ)
 {
-	int8_t cellX = WORLD_TO_CELL(pointX);
-	int8_t cellZ = WORLD_TO_CELL(pointZ);
+	//int8_t cellX = WORLD_TO_CELL(pointX);
+	//int8_t cellZ = WORLD_TO_CELL(pointZ);
 
-	return (engine.map.isBlocked(cellX, cellZ));
+	return false;
+	//return (engine.map.isBlocked(cellX, cellZ));
 }
 
 void Player::move(int16_t deltaX, int16_t deltaZ)
@@ -448,14 +449,14 @@ void Player::init()
 		inventoryFlags = 0;
 	}
 
-	x = 944;
-	z = 1840;
+	x = 0;
+	z = 0;
 
 	weapon.frame = 0;
 	weapon.debounce = false;
 
 	// Find player start tile
-	for(int8_t j = 0; j < MAP_SIZE; j += MAP_BUFFER_SIZE)
+	/*for(int8_t j = 0; j < MAP_SIZE; j += MAP_BUFFER_SIZE)
 	{
 		for(int8_t i = 0; i < MAP_SIZE; i += MAP_BUFFER_SIZE)
 		{
@@ -476,7 +477,7 @@ void Player::init()
 				}
 			}
 		}
-	}
+	}*/
 		//direction = 192;
 
 }
@@ -513,7 +514,7 @@ void Player::shootWeapon()
 		}
 	}
 
-	if(closestActor != -1)
+	/*if(closestActor != -1)
 	{
 		if(weapon.type == WeaponType_Knife)
 		{
@@ -547,7 +548,7 @@ void Player::shootWeapon()
 	else
 	{
 		WARNING("NO TARGET!\n");
-	}
+	}*/
 
 missed:
 	if(weapon.type != WeaponType_Knife && weapon.ammo == 0)

@@ -3,9 +3,6 @@
 
 #define USE_SIMPLE_COLLISIONS
 
-//#define STANDARD_FILE_STREAMING
-#define PROGMEM_MAP_STREAMING
-
 #define DISPLAYWIDTH 144
 #define DISPLAYHEIGHT 128
 
@@ -14,6 +11,7 @@
 
 // bbgggrrr
 #define UZE_RGB(r, g, b) ((r >> 5) | ((g >> 5) << 3) | ((b >> 6) << 6))
+#define RGB332(r, g, b) ( ((r) & 7) | (((g) & 7) << 3) | (((b) & 3) << 6) )
 
 #ifndef NULL
 #define NULL 0
@@ -51,7 +49,7 @@
 #define sign(x) ((x) < 0 ? -1 : 1)
 #define mabs(x) ((x) < 0 ? -(x) : (x))
 
-#define CELL_SIZE_SHIFT 5
+#define CELL_SIZE_SHIFT 6
 #define CELL_SIZE (1 << CELL_SIZE_SHIFT)
 
 #if 0
@@ -61,10 +59,6 @@
 #define CELL_TO_WORLD(x) ((x) << CELL_SIZE_SHIFT)
 #define WORLD_TO_CELL(x) ((x) >> CELL_SIZE_SHIFT)
 #endif
-
-#define MAP_SIZE 64
-#define MAP_BUFFER_SIZE 16
-//#define MAP_SIZE 16
 
 #define TEXTURE_SIZE 16
 #define TEXTURE_STRIDE 4
@@ -81,10 +75,10 @@
 #define NEAR_PLANE_MULTIPLIER 222
 #define NEAR_PLANE (DISPLAYWIDTH * NEAR_PLANE_MULTIPLIER / 256)
 
-#define CLIP_PLANE 1
+#define CLIP_PLANE 20
 #define CAMERA_SCALE 1
 //#define WALL_HEIGHT 1.0f
-#define MOVEMENT 5 //7
+#define MOVEMENT 7
 //#define TURN 1 //3
 #define TURN 2
 #define MIN_WALL_DISTANCE 8

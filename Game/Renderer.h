@@ -48,27 +48,13 @@ public:
 
 	int8_t damageIndicator;
 
-	inline bool isFrustrumClipped(int16_t x, int16_t z)
-	{
-		if((view.clipCos * (x - view.cellX) - view.clipSin * (z - view.cellZ)) < -FIXED_ONE)
-			return true;
-		if((view.clipSin * (x - view.cellX) + view.clipCos * (z - view.cellZ)) < -FIXED_ONE)
-			return true;
-
-		return false;
-	}
-
 	//void updateLevelColours(uint8_t* colours);
 
 
 private:
 	void initWBuffer();
 	void drawFloorAndCeiling();  
-	void drawCell(int8_t cellX, int8_t cellZ);
 	void drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t wallColour = UZE_RGB(192, 192, 192));
-	void drawFrustumCells();
-	void drawBufferedCells();
-	void drawDoors();
 
 	void drawQueuedSprite(uint8_t id);
 	void drawWeapon();
@@ -78,21 +64,9 @@ private:
 	struct 
 	{
 		int16_t x, z;
-		int16_t cellX, cellZ;
 		int16_t rotCos, rotSin;
 		int16_t clipCos, clipSin;
 	} view;
-
-/*	int16_t xpos, zpos;
-	int16_t cos_dir;
-	int16_t sin_dir;
-	int8_t xcell, zcell;
-	int8_t numColumns;*/
-
-#ifdef DEFER_RENDER
-	uint8_t texbuffer[DISPLAYWIDTH];
-	uint8_t ubuffer[DISPLAYWIDTH];
-#endif
 
 	uint8_t renderQueueHead;
 	RenderQueueItem renderQueue[RENDER_QUEUE_CAPACITY];

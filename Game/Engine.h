@@ -18,9 +18,9 @@
 #include "Platform.h"
 #include "Renderer.h"
 #include "Player.h"
-#include "Map.h"
 #include "Actor.h"
 #include "Menu.h"
+#include "Level.h"
 
 enum
 {
@@ -53,7 +53,7 @@ public:
 	
 	Renderer renderer;
 	Player player;
-	Map map;
+	Level level;
 	Menu menu;
 	Actor actors[MAX_ACTIVE_ACTORS];
 
