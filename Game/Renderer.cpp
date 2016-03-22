@@ -72,7 +72,11 @@ uint8_t TextureColours[] PROGMEM =
 void Renderer::init()
 {
 	//updateLevelColours(LevelColours);
-	drawWeapon();
+	//drawWeapon();
+
+	targetDisplayBuffer = displayBuffer;
+	targetOverlayBuffer = overlayBuffer;
+	currentBuffer = 1;
 
 	int floorPaletteColour = 15;
 	uint8_t skyColour = RGB332(1, 1, 1);
@@ -253,12 +257,21 @@ void Renderer::drawFrame()
 	drawWall(500, 500, -500, 500, 6);
 	drawWall(500, -500, 500, 500, 3);
 	drawWall(-500, 500, -500, -500, 3);
+
+	flipBuffers();
+}
+
+void Renderer::flipBuffers()
+{
+	targetDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
+	targetOverlayBuffer = currentBuffer == 0 ? overlayBuffer : overlayBuffer + (DISPLAYWIDTH * DISPLAYHEIGHT / 16);
+	currentBuffer = !currentBuffer;
 }
 
 void Renderer::initWBuffer()
 {
 	for (uint8_t i=0; i<DISPLAYWIDTH; i++)
-		displayBuffer[i] = 0;
+		targetDisplayBuffer[i] = 0;
 }
 
 //typedef int32_t intp_t;
@@ -336,36 +349,26 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 	{
 		uint8_t wallHeight = min(w, HALF_DISPLAYHEIGHT);
 
-		if (wallHeight > displayBuffer[x * 2])
+		if (wallHeight > targetDisplayBuffer[x * 2])
 		{        
-			displayBuffer[x * 2] = wallHeight;
+			targetDisplayBuffer[x * 2] = wallHeight;
 
 			if(wallHeight < FogBands[2])
 			{
-				displayBuffer[x * 2 + 1] = RGB332(0, 0, 0);
+				targetDisplayBuffer[x * 2 + 1] = RGB332(0, 0, 0);
 			}
 			else if(wallHeight < FogBands[1])
 			{
-				displayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour + 2]);
+				targetDisplayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour + 2]);
 			}
 			else if(wallHeight < FogBands[0])
 			{
-				displayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour + 1]);
+				targetDisplayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour + 1]);
 			}
 			else
 			{
-				displayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour]);
+				targetDisplayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour]);
 			}
-#if 0
-			uint8_t r = (wallColour & 7) << 5;
-			uint8_t g = (wallColour & 56) << 2;
-			uint8_t b = (wallColour & 192);
-			r = min(r, (r * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
-			g = min(g, (g * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
-			b = min(b, (b * wallHeight) / (HALF_DISPLAYHEIGHT / FOG_FUDGE));
-			displayBuffer[x * 2 + 1] = UZE_RGB(r, g, b);
-#endif
-
 		}
 
 		werror -= dw;

@@ -59,7 +59,7 @@ private:
 	void drawQueuedSprite(uint8_t id);
 	void drawWeapon();
 	void drawDamage();
-
+	void flipBuffers();
 
 	struct 
 	{
@@ -70,6 +70,9 @@ private:
 
 	uint8_t renderQueueHead;
 	RenderQueueItem renderQueue[RENDER_QUEUE_CAPACITY];
+
+	uint8_t* targetDisplayBuffer;
+	uint8_t* targetOverlayBuffer;
 };
 
 class BitPairReader

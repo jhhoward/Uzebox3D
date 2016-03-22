@@ -5,9 +5,11 @@
 
 SDLPlatform Platform;
 
-uint8_t displayBuffer[DISPLAYWIDTH * 2];
+uint8_t displayBuffer[2 * DISPLAYWIDTH * 2];
 //uint8_t colourTable[512];
-uint8_t overlayBuffer[DISPLAYWIDTH * DISPLAYHEIGHT / 16];
+uint8_t overlayBuffer[2 * DISPLAYWIDTH * DISPLAYHEIGHT / 16];
+
+uint8_t currentBuffer = 0;
 
 uint8_t outerColours[DISPLAYHEIGHT];
 
@@ -189,6 +191,8 @@ void SDLPlatform::draw()
 //	uint8_t ceilingColour = UZE_RGB(32, 32, 32);
 	uint8_t ceilingColour = UZE_RGB(0, 0, 64);
 	uint8_t outer = ceilingColour;
+	uint8_t* currentDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
+	uint8_t* currentOverlayBuffer = currentBuffer == 0 ? overlayBuffer : overlayBuffer + (DISPLAYWIDTH * DISPLAYHEIGHT / 16);
 
 	GenTable();
 
@@ -256,16 +260,16 @@ void SDLPlatform::draw()
 
 			outer = outerColours[y];
 
-			uint8_t colour = displayBuffer[x * 2 + 1];
+			uint8_t colour = currentDisplayBuffer[x * 2 + 1];
 
-			uint8_t geo = displayBuffer[x * 2] + offset;
+			uint8_t geo = currentDisplayBuffer[x * 2] + offset;
 			if((geo & 0x80) == 0)
 			{
 				colour = outer;
 			}
 
 			int overlayIndex = (((y >> 1) * DISPLAYWIDTH) + x) / 8;
-			uint8_t overlay = overlayBuffer[overlayIndex];
+			uint8_t overlay = currentOverlayBuffer[overlayIndex];
 			int overlayMask = 1 << (x % 8);
 			
 			if((overlayMask & overlay) != 0)
@@ -280,6 +284,8 @@ void SDLPlatform::draw()
 
 void ClearVram()
 {
+	uint8_t* currentDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
+
 	for(int n = 0; n < DISPLAYWIDTH * 2; n++)
-		displayBuffer[n] = 0;
+		currentDisplayBuffer[n] = 0;
 }
