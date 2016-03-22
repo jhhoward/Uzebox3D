@@ -26,6 +26,8 @@
  */
 #pragma once
 
-extern unsigned char displayBuffer[];  
-extern unsigned char colourTable[];  
+extern unsigned char displayBuffer[]; 
+extern unsigned char overlayBuffer[];
+extern unsigned char outerColours[];
+extern unsigned char currentBuffer;
 

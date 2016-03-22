@@ -1,3 +1,4 @@
+//#include "Platform.h"
 #include "Engine.h"
 #include "Renderer.h"
 #include "FixedMath.h"
@@ -89,6 +90,7 @@ void Renderer::init()
 		}
 		else
 		{
+#if ENABLE_FOG
 			int height = n - DISPLAYHEIGHT / 2 + 1;
 			if(height < FogBands[2])
 			{
@@ -103,6 +105,7 @@ void Renderer::init()
 				outerColours[n] = pgm_read_byte(&PaletteColours[floorPaletteColour + 1]);
 			}
 			else
+#endif
 			{
 				outerColours[n] = pgm_read_byte(&PaletteColours[floorPaletteColour]);
 			}
@@ -245,9 +248,10 @@ void Renderer::drawFrame()
 	view.clipCos = FixedMath::Cos(-engine.player.direction + DEGREES_90 / 2);
 	view.clipSin = FixedMath::Sin(-engine.player.direction + DEGREES_90 / 2);
 
-	//initWBuffer();
-	ClearVram();
+	initWBuffer();
+	//ClearVram();
 
+#if 1
 	drawWall(50, -50, -50, -50, 0);
 	drawWall(-50, 50, 50, 50, 0);
 	drawWall(50, 50, 50, -50, 3);
@@ -257,36 +261,40 @@ void Renderer::drawFrame()
 	drawWall(500, 500, -500, 500, 6);
 	drawWall(500, -500, 500, 500, 3);
 	drawWall(-500, 500, -500, -500, 3);
-
+	
+#else
+	drawWall(500, -500, 500, 500, 6);
+	drawWall(-50, -50, -50, 50, 3);
+#endif
 	flipBuffers();
 }
 
 void Renderer::flipBuffers()
 {
-	targetDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
+/*	targetDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
 	targetOverlayBuffer = currentBuffer == 0 ? overlayBuffer : overlayBuffer + (DISPLAYWIDTH * DISPLAYHEIGHT / 16);
-	currentBuffer = !currentBuffer;
+	currentBuffer = !currentBuffer;*/
+	currentBuffer = 0;
+	targetDisplayBuffer = displayBuffer;
+	targetOverlayBuffer = overlayBuffer;
 }
 
 void Renderer::initWBuffer()
 {
-	for (uint8_t i=0; i<DISPLAYWIDTH; i++)
+	for (int i=0; i<DISPLAYWIDTH * 2; i++)
 		targetDisplayBuffer[i] = 0;
 }
 
-//typedef int32_t intp_t;
-typedef int16_t intp_t;
 
 // draws one side of a cell
 void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint8_t paletteColour)
 {
 	// find position of wall edges relative to eye
-
-	intp_t z2 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x1-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z1-view.z)));
-	intp_t x2 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x1-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z1-view.z)));
-	intp_t z1 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x2-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z2-view.z)));
-	intp_t x1 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x2-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z2-view.z)));
-
+	int16_t z2 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x1-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z1-view.z)));
+	int16_t x2 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x1-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z1-view.z)));
+	int16_t z1 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x2-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z2-view.z)));
+	int16_t x1 = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x2-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z2-view.z)));
+	
 	// clip to the front pane
 	if ((z1<CLIP_PLANE) && (z2<CLIP_PLANE))
 		return;
@@ -300,39 +308,40 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 		x2 += (CLIP_PLANE-z2) * (x1-x2) / (z1-z2);
 		z2 = CLIP_PLANE;
 	}
-
+	
 	// apply perspective projection
-	intp_t vx1 = (intp_t)(x1 * NEAR_PLANE * CAMERA_SCALE / z1);  
-	intp_t vx2 = (intp_t)(x2 * NEAR_PLANE * CAMERA_SCALE / z2); 
+	int16_t vx1 = (int16_t)(((int32_t)x1 * NEAR_PLANE * CAMERA_SCALE) / z1);  
+	int16_t vx2 = (int16_t)(((int32_t)x2 * NEAR_PLANE * CAMERA_SCALE) / z2); 
 
 	// transform the end points into screen space
-	intp_t sx1 = (intp_t)((DISPLAYWIDTH / 2) + vx1);
-	intp_t sx2 = (intp_t)((DISPLAYWIDTH / 2) + vx2) - 1;
+	int16_t sx1 = (int16_t)((DISPLAYWIDTH / 2) + vx1);
+	int16_t sx2 = (int16_t)((DISPLAYWIDTH / 2) + vx2) - 1;
 
 	// cull
 	if(sx2 < 0 || sx1 >= DISPLAYWIDTH || sx1 > sx2)
 		return;
 
-	intp_t w1 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z1);
-	intp_t w2 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z2);
+	int16_t w1 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z1);
+	int16_t w2 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z2);
 		
 	// clamp to the visible portion of the screen
+	// TODO: not rely on int32 precision
 	if(sx1 < 0)
 	{
-		w1 = w1 + ((w2 - w1) * (0 - sx1)) / (sx2 - sx1);
+		w1 = w1 + ((int32_t)(w2 - w1) * (int32_t)(0 - sx1)) / (int32_t)(sx2 - sx1);
 		sx1 = 0;
 	}
 
 	if(sx2 > DISPLAYWIDTH - 1)
 	{
-		w2 = w1 + ((w2 - w1) * ((DISPLAYWIDTH - 1) - sx1)) / (sx2 - sx1);
+		w2 = w1 + ((int32_t)(w2 - w1) * (int32_t)((DISPLAYWIDTH - 1) - sx1)) / (int32_t)(sx2 - sx1);
 		sx2 = DISPLAYWIDTH - 1;
 	}
 	
-	intp_t dx = sx2 - sx1;
-	intp_t werror = dx / 2;//dx >> 1;
-	intp_t w = w1;
-	intp_t dw, wstep;
+	int16_t dx = sx2 - sx1;
+	int16_t werror = dx / 2;//dx >> 1;
+	int16_t w = w1;
+	int16_t dw, wstep;
 
 	if(w1 < w2)
 	{
@@ -353,6 +362,7 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 		{        
 			targetDisplayBuffer[x * 2] = wallHeight;
 
+#if ENABLE_FOG
 			if(wallHeight < FogBands[2])
 			{
 				targetDisplayBuffer[x * 2 + 1] = RGB332(0, 0, 0);
@@ -366,6 +376,7 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 				targetDisplayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour + 1]);
 			}
 			else
+#endif
 			{
 				targetDisplayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour]);
 			}

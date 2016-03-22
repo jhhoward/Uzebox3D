@@ -9,6 +9,9 @@ void Engine::init()
 	renderer.init();
 	
 	startLevel();
+
+	player.x = -250;
+	player.z = -0;
 	// hacks
 	//map.currentLevel = 2;
 	//difficulty = Difficulty_Baby;

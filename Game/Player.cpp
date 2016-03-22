@@ -255,6 +255,7 @@ bool Player::isPointColliding(int16_t pointX, int16_t pointZ)
 
 void Player::move(int16_t deltaX, int16_t deltaZ)
 {
+	//return;
 	x += deltaX;
 	z += deltaZ;
 
@@ -449,8 +450,8 @@ void Player::init()
 		inventoryFlags = 0;
 	}
 
-	x = 0;
-	z = 0;
+	//x = 0;
+	//z = 0;
 
 	weapon.frame = 0;
 	weapon.debounce = false;

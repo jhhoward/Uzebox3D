@@ -16,9 +16,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*
- * This program demonstrates video mode 8 (bitmap mode @ 120x96 2bpp)
- */
 #include <stdbool.h>
 #include <avr/io.h>
 #include <stdlib.h>
@@ -38,7 +35,7 @@ int main(){
 
 	//Clear the screen (fills the vram with tile zero)
 	ClearVram();
-	
+	/*
 	int n = 0;
 	for(int y = 0; y < SCREEN_HEIGHT; y++)
 		for(int x = 0; x < SCREEN_WIDTH / 8; x++)
@@ -49,6 +46,12 @@ int main(){
 				overlayBuffer[n] = 85;
 			n++;
 		}
+		*/
+	for(int n = 0; n < SCREEN_WIDTH; n++)
+	{
+		displayBuffer[n * 2] = 40;
+		displayBuffer[n * 2 + 1] = UZE_RGB(128, 128, 128);
+	}
 
 	srand(0x365e);
 	

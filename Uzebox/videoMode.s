@@ -24,6 +24,8 @@
 	
 .global displayBuffer
 .global overlayBuffer
+.global currentBuffer
+.global outerColours
 .global colourTable
 .global InitializeVideoMode
 .global DisplayLogo
@@ -32,9 +34,11 @@
 
 .section .bss
 	.align 8
-	colourTable:			.space 512
-	displayBuffer:			.space SCREEN_WIDTH
+	colourTable:			.space 0
+	displayBuffer:			.space 576 ;SCREEN_WIDTH * 4
 	overlayBuffer:			.space 1152; (SCREEN_WIDTH * 64 / 8)
+	outerColours:			.space 128;
+	currentBuffer:			.byte 1
 
 .section .text
 
@@ -44,10 +48,7 @@ sub_video_mode:
 	ldi YH,hi8(colourTable)
 	
 	clr r20
-	ldi r21, 4
-
-	ldi XH,hi8(overlayBuffer)
-	ldi XL,lo8(overlayBuffer)
+	ldi r21, 127 - (128 / 2)
 
 ;*************************************************************
 ; Rendering main loop starts here
@@ -55,99 +56,44 @@ sub_video_mode:
 next_scan_line:	
 	rcall hsync_pulse 
 
-;	WAIT r19,330 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
-;	WAIT r19,270 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
+;	WAIT r19,258 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
+	WAIT r19,212 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
 
-	WAIT r19,258 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
-	ldi XH,hi8(overlayBuffer)
-	ldi XL,lo8(overlayBuffer)
-	ldi r18, (SCREEN_WIDTH / 8)
-	mov r19, r20
-	lsr r19
-	mul r18, r19
-	add XL, r0
-	adc XH, r1
+; r20 : current scanline
+; r21 : scanline modifier
+; r22 : 'outer' colour (floor or ceiling)
+; r23 : overlay colour
+	ldi r23, 59
+	
+	; Load the outer colour
+	ldi ZH, hi8(outerColours)
+	ldi ZL, lo8(outerColours)
+	clr r0
+	add ZL, r20
+	adc ZH, r0
+	ld r22, Z
 	
 	;***draw line***
-	rcall render_tile_line
+	;rcall render_tile_line
+	rcall render_video_line
 	
 	clr r0
 	out _SFR_IO_ADDR(DATA_PORT),r0 ; black
-	;// between 161 and 165
-	;WAIT r19, (4 * 144) - 161;
-	;WAIT r19, 
 
-#if 0
-	WAIT r19,122 - CENTER_ADJUSTMENT
+	WAIT r19,117 - CENTER_ADJUSTMENT
 
-	;duplicate each line
-	;sbrc r20,0
-	;subi YL,lo8(-(SCREEN_WIDTH/4))
-	;sbrc r20,0
-	;sbci YH,hi8(-(SCREEN_WIDTH/4))
-	
-	
-	inc r20
-	cpi r20,(SCREEN_HEIGHT)
-	mov r21, r20
-	brne next_scan_line
-#elif 1
-	WAIT r19,118 - CENTER_ADJUSTMENT
-
-	;duplicate each overlay line
-	sbrc r20,1
-	subi XL,lo8(-(SCREEN_WIDTH/8))
-	sbrc r20,1
-	sbci XH,hi8(-(SCREEN_WIDTH/8))
-	
-	inc r20
-	cpi r20,(60)
-	breq swap_colour_table
-	brge decr_counter
-	
-	;sbrs r20, 0
-	inc r21
-	rjmp next_scan_line
-	
-	swap_colour_table:
-	inc YH
-	rjmp next_scan_line
-	
-	decr_counter:
-	;sbrs r20, 0
-	dec r21
-	
-	cpi r20, 120
-	brne next_scan_line
-#else
-	WAIT r19,99 - CENTER_ADJUSTMENT
-	;; < 64 = 1+1+1+1+1+2+N+N = 9
-	;; = 64 = 1+1+2+1+2+N+N = 9
-	;; > 64 = 1+1+1+2+1+1+2 = 9
-	; -27 + 4 = -23
-	inc r20
-	
-	cpi r20, 64
-	breq swap_colour_table
+	inc r20			; increase scanline count
+	cpi r20,(64)
 	brge decr_counter
 	
 	inc r21
-	nop
-	nop
-	rjmp next_scan_line
-	
-	swap_colour_table:
-	inc YH
-	nop
-	nop
 	rjmp next_scan_line
 	
 	decr_counter:
 	dec r21
 	
-	cpi r20, SCREEN_HEIGHT
+	cpi r20, 127
 	brne next_scan_line
-#endif
 	
 	nop
 	rcall hsync_pulse ;145
@@ -167,104 +113,85 @@ next_scan_line:
 
 	ret
 
+; Output a pixel (10 cycles)
+; Trashes r24, r25. Increments X by two
+; Setup:
+; r21 : scanline modifier
+; r22 : 'outer' colour (floor or ceiling)
+; r23 : overlay colour
+.macro VIDEO_PIXEL overlayMask, overlayBit
+	ld r24, X+							; Load wall height
+	ld r25, X+							; Load wall colour
+	add r24, r21						; Add scanline modifier
+	sbrs r24, 7							; If result < 128
+	mov r25, r22						; then use the outer colour
+	sbrc \overlayMask, \overlayBit		; If bit set in overlay
+	mov r25, r23						; then use overlay colour
+	out _SFR_IO_ADDR(DATA_PORT), r25	; Output the pixel colour
+.endm
 
-;*************************************************
-; RENDER TILE LINE
-;
-; r20     = render line counter (incrementing)
-; Y       = VRAM adress to draw from (must not be modified)
-;
-; Must preserve r20,Y
-; 
-; cycles  = 1495
-;*************************************************
-render_tile_line:
-	ldi ZL,lo8(displayBuffer)
-	ldi ZH,hi8(displayBuffer)
+; Output a block of pixels using the given overlay mask and bit range
+.macro VIDEO_BLOCK overlayMask, startBit=0, endBit=7
+	VIDEO_PIXEL \overlayMask, \startBit
+	.if \endBit-\startBit
+		VIDEO_BLOCK \overlayMask, "(\startBit+1)", \endBit
+	.endif
+.endm
 
-	;10 cycles per pixel
-	ldi r18,SCREEN_WIDTH/8
-	
-main_loop:
-	;mov r19, ZL
-	ld r19, X+
-	;ldi r19, 0 ;170
-	;nop
-	
-	ld YL, Z+
-	add YL, r21
-	ld r16, Y
-	sbrc r19, 0
-	ldi r16, 0
-	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 0
-	
-	ld YL, Z+
-	add YL, r21
-	ld r16, Y
-	sbrc r19, 1
-	ldi r16, 0
-	nop
-	nop
-	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 1
+; Load the overlay masks and store the contents in a given range of registers
+.macro LOAD_OVERLAY_MASKS, startReg=0, endReg=17
+	ld \startReg, Y+
+	.if \endReg-\startReg
+		LOAD_OVERLAY_MASKS "(\startReg+1)", \endReg
+	.endif
+.endm
 
-	ld YL, Z+
-	add YL, r21
-	ld r16, Y
-	sbrc r19, 2
-	ldi r16, 0
-	nop
-	nop
-	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 2
+; Macro for unrolling the VIDEO_BLOCK loop
+.macro VIDEO_LINE, startReg=0, endReg=17
+	VIDEO_BLOCK \startReg, 0, 7
+	.if \endReg-\startReg
+		VIDEO_LINE "(\startReg+1)", \endReg
+	.endif
+.endm
 	
-	ld YL, Z+
-	add YL, r21
-	ld r16, Y
-	sbrc r19, 3
-	ldi r16, 0
-	nop
-	nop
-	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 3
+; Output a scanline of 144 pixels (18 blocks of 8 pixels)
+; 47 cycles setup
+; 1440 cycles rendering
+; 1487? cycles total
+; Trashes r0 - r17, r24, r25
+; Assumes:
+; r20 : current scanline
+; r21 : scanline modifier
+; r22 : 'outer' colour (floor or ceiling)
+; r23 : overlay colour
+render_video_line:
+	; determine which buffer from the double buffer to use
+	lds r18, currentBuffer;
 	
-	ld YL, Z+
-	add YL, r21
-	ld r16, Y
-	sbrc r19, 4
-	ldi r16, 0
-	nop
-	nop
-	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 4
-	
-	ld YL, Z+
-	add YL, r21
-	ld r16, Y
-	sbrc r19, 5
-	ldi r16, 0
-	nop
-	nop
-	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 5
-	
-	ld YL, Z+
-	add YL, r21
-	ld r16, Y
-	sbrc r19, 6
-	ldi r16, 0
-	nop
-	nop
-	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 6
-	
-	ld YL, Z+
-	add YL, r21
-	ld r16, Y
-	sbrc r19, 7
-	ldi r16, 0
-	dec r18
-	;nop
-	out _SFR_IO_ADDR(DATA_PORT),r16 ;pixel 7
+	; Set up display buffer pointer (2 cycles)
+	ldi XL, lo8(displayBuffer)
+	ldi XH, hi8(displayBuffer)
 
-	brne main_loop
+	; Set up overlay pointer (9 cycles)
+	; ptr = overlayBuffer + (scanline >> 1) * (SCREEN_WIDTH / 8)
+	ldi YL, lo8(overlayBuffer)
+	ldi YH, hi8(overlayBuffer)
+	mov r16, r20
+	lsr r16
+	ldi r17, (SCREEN_WIDTH / 8)
+	mul r16, r17
+	add YL, r0
+	adc YH, r1
 
+	; Load all the overlay contents ahead of time into registers r0 - r17 (36 cycles)
+	LOAD_OVERLAY_MASKS 0, 17
+	
+	; Output the pixels to the screen (1440 cycles)
+	VIDEO_LINE 0, 17
+	
 	ret
 
+	
 ;***********************************
 ; CLEAR VRAM 8bit
 ; Fill the screen with the specified tile

@@ -17,6 +17,8 @@
 #define NULL 0
 #endif
 
+#define ENABLE_FOG 0
+
 // WIN32 specific
 #ifdef _WIN32
 #define ZOOM_SCALE 1

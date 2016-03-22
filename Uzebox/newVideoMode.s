@@ -9,10 +9,10 @@
 	ld r24, X+							; Load wall height
 	add r24, r21						; Add scanline modifier
 	sbrs r24, 7							; If result < 128
-	mov r24, r22						; then use the outer colour
+	mov r25, r22						; then use the outer colour
 	sbrc \overlayMask, \overlayBit		; If bit set in overlay
-	mov r24, r23						; then use overlay colour
-	out r24								; Output the pixel colour
+	mov r25, r23						; then use overlay colour
+	out r25								; Output the pixel colour
 .endm
 
 ; Output a block of pixels using the given overlay mask and bit range
