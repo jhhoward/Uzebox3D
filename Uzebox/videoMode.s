@@ -43,7 +43,7 @@
 
 sub_video_mode:
 
-	WAIT r16,1352
+	WAIT r16,1351
 	
 	clr r20						; Clear scanline counter
 	ldi r21, 128	- (128 / 2)	; Init scanline modifier
@@ -78,13 +78,14 @@ next_scan_line:
 	clr r0
 	out _SFR_IO_ADDR(DATA_PORT),r0 ; black
 
-	WAIT r19,117 - CENTER_ADJUSTMENT
+	WAIT r19,60 - CENTER_ADJUSTMENT
 
 	inc r20			; increase scanline count
 	cpi r20,(64)
 	brsh decr_counter
 	
 	inc r21
+	rjmp .
 	rjmp next_scan_line
 	
 	decr_counter:

@@ -111,7 +111,7 @@ void SDLPlatform::run()
 		SDL_RenderCopy(m_appRenderer, m_screenTexture, &src, &dest);
 		SDL_RenderPresent(m_appRenderer);
 
-		SDL_Delay(1000 / 30);
+		SDL_Delay(1000 / 60);
 	}
 
 	SDL_Quit();

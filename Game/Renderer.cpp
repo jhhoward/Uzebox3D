@@ -4,9 +4,10 @@
 #include "FixedMath.h"
 #include "TileTypes.h"
 
-#include "Data_Pistol.h"
-#include "Data_Knife.h"
-#include "Data_Machinegun.h"
+//#include "Data_Pistol.h"
+#include "Data_Shotgun.h"
+//#include "Data_Knife.h"
+//#include "Data_Machinegun.h"
 #if 0
 #include "Data_Walls.h"
 #include "Data_Decorations.h"
@@ -73,7 +74,7 @@ uint8_t TextureColours[] PROGMEM =
 void Renderer::init()
 {
 	//updateLevelColours(LevelColours);
-	overlayColour = RGB332(2, 2, 1);
+	overlayColour = RGB332(1, 1, 0);
 
 	targetDisplayBuffer = displayBuffer;
 	targetOverlayBuffer = overlayBuffer;
@@ -179,7 +180,7 @@ void Renderer::drawWeapon()
 	
 	engine.player.weapon.type = WeaponType_Pistol;
 
-	switch(engine.player.weapon.type)
+	/*switch(engine.player.weapon.type)
 	{
 	case WeaponType_Knife:
 		frame = (SpriteFrame*) &Data_knifeSprite_frames[engine.player.weapon.frame];
@@ -193,13 +194,15 @@ void Renderer::drawWeapon()
 		frame = (SpriteFrame*) &Data_machinegunSprite_frames[engine.player.weapon.frame];
 		data = (uint8_t*) Data_machinegunSprite;
 		break;
-	}
+	}*/
 	
+	frame = (SpriteFrame*) &Data_shotgunSprite_frames[engine.player.weapon.frame];
+	data = (uint8_t*) Data_shotgunSprite;
 
 	BitPairReader reader((uint8_t*)data, pgm_read_word(&frame->offset));
 	uint8_t frameWidth = pgm_read_byte(&frame->width);
 	uint8_t frameHeight = pgm_read_byte(&frame->height);
-	uint8_t x = HALF_DISPLAYWIDTH - 8 + pgm_read_byte(&frame->xOffset);
+	uint8_t x = HALF_DISPLAYWIDTH - 16 + pgm_read_byte(&frame->xOffset);
 	uint8_t mask = 1 << (x & 7);
 	uint8_t y = HALF_DISPLAYHEIGHT - 1;
 	uint8_t* overlayPtr = targetOverlayBuffer + (y * DISPLAYWIDTH + x) / 8;
