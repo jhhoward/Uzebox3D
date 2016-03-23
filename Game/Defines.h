@@ -17,11 +17,11 @@
 #define NULL 0
 #endif
 
-#define ENABLE_FOG 0
+#define ENABLE_FOG 1
 
 // WIN32 specific
 #ifdef _WIN32
-#define ZOOM_SCALE 1
+#define ZOOM_SCALE 3
 #define ASPECT_RATIO 2
 
 #define PROGMEM
@@ -104,5 +104,7 @@
 #define FONT_GLYPH_BYTE_SIZE 2
 
 #define FOG_FUDGE 2.5
+
+#define ENABLE_DOUBLE_BUFFER 1
 
 #endif

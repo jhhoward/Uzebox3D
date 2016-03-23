@@ -73,11 +73,15 @@ uint8_t TextureColours[] PROGMEM =
 void Renderer::init()
 {
 	//updateLevelColours(LevelColours);
-	//drawWeapon();
+	overlayColour = RGB332(2, 2, 1);
 
 	targetDisplayBuffer = displayBuffer;
 	targetOverlayBuffer = overlayBuffer;
 	currentBuffer = 1;
+
+	drawWeapon();
+	flipBuffers();
+	drawWeapon();
 
 	int floorPaletteColour = 15;
 	uint8_t skyColour = RGB332(1, 1, 1);
@@ -91,7 +95,7 @@ void Renderer::init()
 		else
 		{
 #if ENABLE_FOG
-			int height = n - DISPLAYHEIGHT / 2 + 1;
+			int height = n - DISPLAYHEIGHT / 2;
 			if(height < FogBands[2])
 			{
 				outerColours[n] = RGB332(0, 0, 0);
@@ -198,7 +202,7 @@ void Renderer::drawWeapon()
 	uint8_t x = HALF_DISPLAYWIDTH - 8 + pgm_read_byte(&frame->xOffset);
 	uint8_t mask = 1 << (x & 7);
 	uint8_t y = HALF_DISPLAYHEIGHT - 1;
-	uint8_t* overlayPtr = overlayBuffer + (y * DISPLAYWIDTH + x) / 8;
+	uint8_t* overlayPtr = targetOverlayBuffer + (y * DISPLAYWIDTH + x) / 8;
 
 	for(int8_t i = 0; i < frameWidth; i++)
 	{
@@ -271,16 +275,21 @@ void Renderer::drawFrame()
 
 void Renderer::flipBuffers()
 {
-/*	targetDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
+#if ENABLE_DOUBLE_BUFFER
+	targetDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
 	targetOverlayBuffer = currentBuffer == 0 ? overlayBuffer : overlayBuffer + (DISPLAYWIDTH * DISPLAYHEIGHT / 16);
-	currentBuffer = !currentBuffer;*/
+	currentBuffer = !currentBuffer;
+#else
 	currentBuffer = 0;
 	targetDisplayBuffer = displayBuffer;
 	targetOverlayBuffer = overlayBuffer;
+#endif
 }
 
 void Renderer::initWBuffer()
 {
+	for (int i=0; i<DISPLAYWIDTH * 4; i++)
+		displayBuffer[i] = 0;
 	for (int i=0; i<DISPLAYWIDTH * 2; i++)
 		targetDisplayBuffer[i] = 0;
 }
@@ -300,12 +309,12 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 		return;
 	if (z1 < CLIP_PLANE)
 	{
-		x1 += (CLIP_PLANE-z1) * (x2-x1) / (z2-z1);
+		x1 += (int16_t) ( ((int32_t)(CLIP_PLANE-z1) * (int32_t)(x2-x1)) / (z2-z1) );
 		z1 = CLIP_PLANE;
 	}
 	else if (z2 < CLIP_PLANE)
 	{
-		x2 += (CLIP_PLANE-z2) * (x1-x2) / (z1-z2);
+		x2 += (int16_t) ( ((int32_t)(CLIP_PLANE-z2) * (int32_t)(x1-x2)) / (z1-z2) );
 		z2 = CLIP_PLANE;
 	}
 	

@@ -26,17 +26,16 @@
 .global overlayBuffer
 .global currentBuffer
 .global outerColours
-.global colourTable
+.global overlayColour;
 .global InitializeVideoMode
 .global DisplayLogo
 .global VideoModeVsync
 .global ClearVram
 
 .section .bss
-	.align 8
-	colourTable:			.space 0
 	displayBuffer:			.space 576 ;SCREEN_WIDTH * 4
-	overlayBuffer:			.space 1152; (SCREEN_WIDTH * 64 / 8)
+	overlayBuffer:			.space 2304; (SCREEN_WIDTH * 64 / 8)
+	overlayColour:			.byte 1
 	outerColours:			.space 128;
 	currentBuffer:			.byte 1
 
@@ -45,10 +44,9 @@
 sub_video_mode:
 
 	WAIT r16,1352
-	ldi YH,hi8(colourTable)
 	
-	clr r20
-	ldi r21, 127 - (128 / 2)
+	clr r20						; Clear scanline counter
+	ldi r21, 128	- (128 / 2)	; Init scanline modifier
 
 ;*************************************************************
 ; Rendering main loop starts here
@@ -63,7 +61,7 @@ next_scan_line:
 ; r21 : scanline modifier
 ; r22 : 'outer' colour (floor or ceiling)
 ; r23 : overlay colour
-	ldi r23, 59
+	lds r23, overlayColour			; Load overlay colour
 	
 	; Load the outer colour
 	ldi ZH, hi8(outerColours)
@@ -84,7 +82,7 @@ next_scan_line:
 
 	inc r20			; increase scanline count
 	cpi r20,(64)
-	brge decr_counter
+	brsh decr_counter
 	
 	inc r21
 	rjmp next_scan_line
@@ -171,6 +169,14 @@ render_video_line:
 	; Set up display buffer pointer (2 cycles)
 	ldi XL, lo8(displayBuffer)
 	ldi XH, hi8(displayBuffer)
+	
+	; If we are using the second buffer then increment pointer by 288
+	ldi r16, 32
+	ldi r17, 1
+	sbrc r18, 0
+	add XL, r16
+	sbrc r18, 0
+	adc XH, r17
 
 	; Set up overlay pointer (9 cycles)
 	; ptr = overlayBuffer + (scanline >> 1) * (SCREEN_WIDTH / 8)
@@ -182,6 +188,14 @@ render_video_line:
 	mul r16, r17
 	add YL, r0
 	adc YH, r1
+
+	; If we are using the second buffer then increment pointer by 1152
+	ldi r16, 128
+	ldi r17, 4
+	sbrc r18, 0
+	add YL, r16
+	sbrc r18, 0
+	adc YH, r17
 
 	; Load all the overlay contents ahead of time into registers r0 - r17 (36 cycles)
 	LOAD_OVERLAY_MASKS 0, 17

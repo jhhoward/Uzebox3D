@@ -36,5 +36,6 @@ extern uint8_t displayBuffer[];
 extern uint8_t overlayBuffer[];
 extern uint8_t outerColours[];
 extern uint8_t currentBuffer;
+extern uint8_t overlayColour;
 
 #endif

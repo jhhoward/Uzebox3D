@@ -29,14 +29,12 @@ extern "C" {
 
 UzeboxPlatform Platform;
 
-extern uint8_t overlayBuffer[];
-
 int main(){
 
 	//Clear the screen (fills the vram with tile zero)
 	ClearVram();
-	/*
-	int n = 0;
+	
+	/*int n = 0;
 	for(int y = 0; y < SCREEN_HEIGHT; y++)
 		for(int x = 0; x < SCREEN_WIDTH / 8; x++)
 		{
@@ -52,6 +50,7 @@ int main(){
 		displayBuffer[n * 2] = 40;
 		displayBuffer[n * 2 + 1] = UZE_RGB(128, 128, 128);
 	}
+	
 
 	srand(0x365e);
 	

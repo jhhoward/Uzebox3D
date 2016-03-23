@@ -30,4 +30,5 @@ extern unsigned char displayBuffer[];
 extern unsigned char overlayBuffer[];
 extern unsigned char outerColours[];
 extern unsigned char currentBuffer;
+extern unsigned char overlayColour;
 
