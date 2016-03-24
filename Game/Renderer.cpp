@@ -269,11 +269,18 @@ void Renderer::drawFrame()
 	drawWall(50, 50, 50, -50, 3);
 	drawWall(-50, -50, -50, 50, 3);
 
-	drawWall(-500, -500, 500, -500, 6);
+	drawWall(-300, -500, 300, -500, 0);
+	drawWall(300, -500, 500, -300, 3);
+	drawWall(500, -300, 500, 300, 6);
+	drawWall(500, 300, 300, 500, 3);
+	drawWall(300, 500, -300, 500, 0);
+	drawWall(-300, 500, -500, 300, 3);
+	drawWall(-500, 300, -300, -500, 6);
+/*	drawWall(-500, -500, 500, -500, 6);
 	drawWall(500, 500, -500, 500, 6);
 	drawWall(500, -500, 500, 500, 3);
 	drawWall(-500, 500, -500, -500, 3);
-	
+	*/
 #else
 	drawWall(500, -500, 500, 500, 6);
 	drawWall(-50, -50, -50, 50, 3);
@@ -390,7 +397,6 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 		if (wallHeight > targetDisplayBuffer[x * 2])
 		{        
 			targetDisplayBuffer[x * 2] = wallHeight;
-
 #if ENABLE_FOG
 			if(wallHeight < FogBands[2])
 			{

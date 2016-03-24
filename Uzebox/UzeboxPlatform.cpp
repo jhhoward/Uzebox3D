@@ -29,11 +29,13 @@ extern "C" {
 
 UzeboxPlatform Platform;
 
+#define MAX_TICKS 3
 uint8_t tickCounter = 0;
 
 void VSyncCallback()
 {
-	tickCounter++;
+	if(tickCounter < MAX_TICKS)
+		tickCounter++;
 }
 
 int main(){
