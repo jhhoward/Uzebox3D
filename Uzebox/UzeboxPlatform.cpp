@@ -29,9 +29,17 @@ extern "C" {
 
 UzeboxPlatform Platform;
 
+uint8_t tickCounter = 0;
+
+void VSyncCallback()
+{
+	tickCounter++;
+}
+
 int main(){
 
 	//Clear the screen (fills the vram with tile zero)
+	SetUserPostVsyncCallback(VSyncCallback);
 	ClearVram();
 	
 	/*int n = 0;
@@ -58,9 +66,12 @@ int main(){
 	
 	while(1)
 	{
+		engine.ticks = tickCounter;
+		tickCounter = 0;
+		
 		Platform.update();
 		engine.update();
-		WaitVsync(1);
+		//WaitVsync(1);
 		engine.renderer.drawFrame();
 	}
 }

@@ -60,6 +60,7 @@ public:
 	int16_t frameCount;
 	uint8_t gameState;
 	uint8_t difficulty;
+	uint8_t ticks;
 };
 
 extern Engine engine;

@@ -69,8 +69,8 @@ void Player::update()
 		}
 		else ticksSinceStrafePressed = 0;
 
-		int16_t movement = MOVEMENT;
-		int16_t turn = TURN;
+		int16_t movement = MOVEMENT * engine.ticks;
+		int16_t turn = TURN * engine.ticks;
 		int16_t oldX = x;
 		int16_t oldZ = z;
 		int16_t deltaX = 0, deltaZ = 0;

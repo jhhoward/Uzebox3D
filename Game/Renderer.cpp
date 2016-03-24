@@ -6,6 +6,7 @@
 
 //#include "Data_Pistol.h"
 #include "Data_Shotgun.h"
+#include "Data_Marine.h"
 //#include "Data_Knife.h"
 //#include "Data_Machinegun.h"
 #if 0
@@ -74,7 +75,7 @@ uint8_t TextureColours[] PROGMEM =
 void Renderer::init()
 {
 	//updateLevelColours(LevelColours);
-	overlayColour = RGB332(1, 1, 0);
+	overlayColour = RGB332(0, 0, 0);
 
 	targetDisplayBuffer = displayBuffer;
 	targetOverlayBuffer = overlayBuffer;
@@ -215,9 +216,13 @@ void Renderer::drawWeapon()
 		{
 			uint8_t pixel = reader.read();
 
-			if(pixel >= 2)
+			if(pixel == 2)
 			{
 				*overlayPtr |= mask;
+			}
+			else if(pixel == 1)
+			{
+				*overlayPtr &= ~mask;
 			}
 			y--;
 			overlayPtr -= (DISPLAYWIDTH / 8);
@@ -273,6 +278,19 @@ void Renderer::drawFrame()
 	drawWall(500, -500, 500, 500, 6);
 	drawWall(-50, -50, -50, 50, 3);
 #endif
+
+	queueSprite(&Data_marineSprite_frames[0], Data_marineSprite, -100, -100);
+	queueSprite(&Data_marineSprite_frames[0], Data_marineSprite, 100, 100);
+	queueSprite(&Data_marineSprite_frames[0], Data_marineSprite, -100, 100);
+
+	clearOverlay();
+	for(uint8_t item = renderQueueHead; item != NULL_QUEUE_ITEM; item = renderQueue[item].next)
+	{
+		drawQueuedSprite(item);
+	}
+
+	drawWeapon();
+
 	flipBuffers();
 }
 
@@ -291,8 +309,6 @@ void Renderer::flipBuffers()
 
 void Renderer::initWBuffer()
 {
-	for (int i=0; i<DISPLAYWIDTH * 4; i++)
-		displayBuffer[i] = 0;
 	for (int i=0; i<DISPLAYWIDTH * 2; i++)
 		targetDisplayBuffer[i] = 0;
 }
@@ -368,7 +384,8 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 
 	for (int16_t x=sx1; x<=sx2; x++)
 	{
-		uint8_t wallHeight = min(w, HALF_DISPLAYHEIGHT);
+//		uint8_t wallHeight = min(w, HALF_DISPLAYHEIGHT);
+		uint8_t wallHeight = min(w, 127);
 
 		if (wallHeight > targetDisplayBuffer[x * 2])
 		{        
@@ -407,14 +424,10 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 	}
 }
 
-void Renderer::queueSprite(SpriteFrame* frame, uint8_t* spriteData, int16_t _x, int16_t _z)
+void Renderer::queueSprite(const SpriteFrame* frame, const uint8_t* spriteData, int16_t _x, int16_t _z)
 {
-#if 0
-	int cellX = WORLD_TO_CELL(_x);
-	int cellZ = WORLD_TO_CELL(_z);
-
-	if(isFrustrumClipped(cellX, cellZ))
-		return;
+	//if(isFrustrumClipped(_x, _z))
+		//return;
 
 	int16_t zt = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z-view.z)));
 	int16_t xt = (int16_t)(FIXED_TO_INT(view.rotSin * (int32_t)(_x-view.x)) + FIXED_TO_INT(view.rotCos * (int32_t)(_z-view.z)));
@@ -424,7 +437,7 @@ void Renderer::queueSprite(SpriteFrame* frame, uint8_t* spriteData, int16_t _x, 
 		return;
 
 	// apply perspective projection
-	int16_t vx = (int16_t)(xt * NEAR_PLANE * CAMERA_SCALE / zt);  
+	int16_t vx = (int16_t)((int32_t)xt * NEAR_PLANE * CAMERA_SCALE / zt);  
 
 	if(vx <= -DISPLAYWIDTH || vx >= DISPLAYWIDTH)
 		return;
@@ -497,16 +510,45 @@ void Renderer::queueSprite(SpriteFrame* frame, uint8_t* spriteData, int16_t _x, 
 			}
 		}
 	}
-#endif
+}
+
+void Renderer::clearOverlay()
+{
+	uint8_t* ptr = targetOverlayBuffer;
+	int count = DISPLAYWIDTH * DISPLAYHEIGHT / 16;
+
+	while(count--)
+	{
+		*ptr++ = 0;
+	}
+}
+
+void Renderer::clearPixel(uint8_t x, uint8_t y)
+{
+	if(x >= DISPLAYWIDTH || y >= DISPLAYHEIGHT / 2)
+		return;
+
+	uint8_t* ptr = targetOverlayBuffer + ((y * DISPLAYWIDTH + x) >> 3);
+	uint8_t mask = ~(1 << (x & 7));
+	*ptr &= mask;
+}
+
+void Renderer::setPixel(uint8_t x, uint8_t y)
+{
+	if(x >= DISPLAYWIDTH || y >= DISPLAYHEIGHT / 2)
+		return;
+
+	uint8_t* ptr = targetOverlayBuffer + ((y * DISPLAYWIDTH + x) >> 3);
+	uint8_t mask = (1 << (x & 7));
+	*ptr |= mask;
 }
 
 void Renderer::drawQueuedSprite(uint8_t id)
 {
-#if 0
 	uint8_t frameWidth = pgm_read_byte(&renderQueue[id].frame->width);
 	uint8_t frameHeight = pgm_read_byte(&renderQueue[id].frame->height);
 	int16_t halfW = renderQueue[id].w >> 1;
-	int y2 = (HALF_DISPLAYHEIGHT) + halfW;
+	int y2 = (HALF_DISPLAYHEIGHT / 2) + halfW;
 	int y1 = y2 - (renderQueue[id].w * frameHeight) / (CELL_SIZE / 2);
 
 	int16_t w = renderQueue[id].w;
@@ -522,7 +564,7 @@ void Renderer::drawQueuedSprite(uint8_t id)
 
 	for (int x = sx1; x <= sx2; x++)
 	{
-		if (x >= 0 && x < DISPLAYWIDTH && w > wbuffer[x])
+		if (x >= 0 && x < DISPLAYWIDTH && w > targetDisplayBuffer[x << 1])
 		{        
 			int verror = halfW;
 
@@ -533,7 +575,7 @@ void Renderer::drawQueuedSprite(uint8_t id)
 
 			for(int y = y2; y >= y1 && y >= 0 && v < frameHeight; y--)
 			{
-				if(y < DISPLAYHEIGHT)
+				if(y < DISPLAYHEIGHT / 2)
 				{
 					switch(texData)
 					{
@@ -546,9 +588,6 @@ void Renderer::drawQueuedSprite(uint8_t id)
 						setPixel(x, y);
 						break;
 					case 3:
-#if defined(EMULATE_UZEBOX)
-						drawPixel(x, y, 2);
-#else
 						if((x ^ y) & 1)
 						{
 							clearPixel(x, y);
@@ -557,11 +596,10 @@ void Renderer::drawQueuedSprite(uint8_t id)
 						{
 							setPixel(x, y);
 						}
-#endif
 						break;
 					}
 				}
-				verror -= 15;
+				verror -= 31;
 
 				while(verror < 0)
 				{
@@ -584,7 +622,6 @@ void Renderer::drawQueuedSprite(uint8_t id)
 			}
 		}
 	}
-#endif
 }
 
 void Renderer::drawGlyph(char glyph, uint8_t x, uint8_t y)

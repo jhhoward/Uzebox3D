@@ -96,6 +96,7 @@ void SDLPlatform::run()
 		SDL_SetRenderDrawColor ( m_appRenderer, 206, 221, 231, 255 );
 		SDL_RenderClear ( m_appRenderer );
 
+		engine.ticks = 1;
 		engine.update();
 		engine.draw();
 
@@ -154,7 +155,9 @@ void SDLPlatform::draw()
 	uint8_t* currentDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
 	uint8_t* currentOverlayBuffer = currentBuffer == 0 ? overlayBuffer : overlayBuffer + (DISPLAYWIDTH * DISPLAYHEIGHT / 16);
 
-	for(int y = 0; y < DISPLAYHEIGHT; y++)
+	int y = 0;
+
+	while(y < DISPLAYHEIGHT)
 	{
 		for(int x = 0; x < DISPLAYWIDTH; x++)
 		{
@@ -179,7 +182,10 @@ void SDLPlatform::draw()
 
 			drawPixel(x, y, colour);
 		}
-		if(y >= DISPLAYHEIGHT / 2)
+
+		y++;
+
+		if(y >= DISPLAYHEIGHT / 2 + 1)
 		{
 			offset --;
 		}

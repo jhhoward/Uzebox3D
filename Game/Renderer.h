@@ -14,8 +14,8 @@
 
 struct RenderQueueItem
 {
-	SpriteFrame* frame;
-	uint8_t* data;
+	const SpriteFrame* frame;
+	const uint8_t* data;
 	uint8_t x, w;
 	uint8_t next;
 };
@@ -35,7 +35,7 @@ class Renderer
 public:
 	void init();
 	void drawFrame();
-	void queueSprite(SpriteFrame* frame, uint8_t* sprite, int16_t x, int16_t z);
+	void queueSprite(const SpriteFrame* frame, const uint8_t* sprite, int16_t x, int16_t z);
 
 	void drawGlyph(char glyph, uint8_t x, uint8_t y);
 	void drawString(const char* str, uint8_t x, uint8_t y);
@@ -50,6 +50,15 @@ public:
 
 	//void updateLevelColours(uint8_t* colours);
 
+	inline bool isFrustrumClipped(int16_t x, int16_t z)
+	{
+		if((view.clipCos * (x - view.x) - view.clipSin * (z - view.z)) < -FIXED_ONE)
+			return true;
+		if((view.clipSin * (x - view.x) + view.clipCos * (z - view.z)) < -FIXED_ONE)
+			return true;
+
+		return false;
+	}
 
 private:
 	void initWBuffer();
@@ -60,6 +69,10 @@ private:
 	void drawWeapon();
 	void drawDamage();
 	void flipBuffers();
+
+	void clearPixel(uint8_t x, uint8_t y);
+	void setPixel(uint8_t x, uint8_t y);
+	void clearOverlay();
 
 	struct 
 	{

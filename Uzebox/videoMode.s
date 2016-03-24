@@ -81,7 +81,7 @@ next_scan_line:
 	WAIT r19,60 - CENTER_ADJUSTMENT
 
 	inc r20			; increase scanline count
-	cpi r20,(64)
+	cpi r20,(65)	; displayheight / 2 + 1
 	brsh decr_counter
 	
 	inc r21
