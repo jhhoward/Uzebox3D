@@ -2,6 +2,7 @@
 #include <vector>
 #include <stdint.h>
 #include <stdio.h>
+#include <algorithm>
 #include "lodepng.h"
 
 using namespace std;
@@ -19,7 +20,8 @@ enum EncodeMode
 	Encode_Invalid = -1,
 	Encode_Texture,
 	Encode_Sprite,
-	Encode_Font
+	Encode_Font,
+	Encode_ColourTexture
 };
 
 uint8_t texturePalette[] = 
@@ -46,14 +48,29 @@ uint8_t fontPalette[] =
 	0, 0, 0,			// black
 };
 
+uint8_t uzeboxPalette[256 * 3];
+
 EncodeMode encodeMode = Encode_Invalid;
 
-int GetPaletteIndexFromColour(uint8_t* palette, uint8_t r, uint8_t g, uint8_t b)
+void GenerateUzeboxPalette()
+{
+	for(int n = 0; n < 256; n++)
+	{
+		int red = ((n & 0x7) * 255) / 7;
+		int green = (((n & 0x38) >> 3) * 255) / 7;
+		int blue = (((n & 0xc0) >> 6) * 255) / 3;
+		uzeboxPalette[n * 3 + 0] = (uint8_t) red;
+		uzeboxPalette[n * 3 + 1] = (uint8_t) green;
+		uzeboxPalette[n * 3 + 2] = (uint8_t) blue;
+	}
+}
+
+int GetPaletteIndexFromColour(uint8_t* palette, int paletteSize, uint8_t r, uint8_t g, uint8_t b)
 {
 	int bestPalette = -1;
 	int bestDistance = -1;
 	
-	for(int n = 0; n < 4; n++)
+	for(int n = 0; n < paletteSize; n++)
 	{
 		int rdiff = (int) palette[n * 3] - (int) r;
 		int gdiff = (int) palette[n * 3 + 1] - (int) g;
@@ -83,7 +100,7 @@ SpriteFrame EncodeFrame(vector<uint8_t>& data, int width, int height, int offset
 		for(int j = 0; j < height && blank; j++)
 		{
 			int position = (offset + width * j + i) * 4;
-			int index = GetPaletteIndexFromColour(texturePaletteSprite, data[position], data[position + 1], data[position + 2]);
+			int index = GetPaletteIndexFromColour(texturePaletteSprite, 4, data[position], data[position + 1], data[position + 2]);
 			if(index != 0)
 				blank = false;
 		}
@@ -97,7 +114,7 @@ SpriteFrame EncodeFrame(vector<uint8_t>& data, int width, int height, int offset
 		for(int j = 0; j < height && blank; j++)
 		{
 			int position = (offset + width * j + i) * 4;
-			int index = GetPaletteIndexFromColour(texturePaletteSprite, data[position], data[position + 1], data[position + 2]);
+			int index = GetPaletteIndexFromColour(texturePaletteSprite, 4, data[position], data[position + 1], data[position + 2]);
 			if(index != 0)
 				blank = false;
 		}
@@ -111,7 +128,7 @@ SpriteFrame EncodeFrame(vector<uint8_t>& data, int width, int height, int offset
 		for(int i = 0; i < height && blank; i++)
 		{
 			int position = (offset + width * j + i) * 4;
-			int index = GetPaletteIndexFromColour(texturePaletteSprite, data[position], data[position + 1], data[position + 2]);
+			int index = GetPaletteIndexFromColour(texturePaletteSprite, 4, data[position], data[position + 1], data[position + 2]);
 			if(index != 0)
 				blank = false;
 		}
@@ -148,7 +165,7 @@ SpriteFrame EncodeFrame(vector<uint8_t>& data, int width, int height, int offset
 		for(int j = y2 - 1; j >= y1; j--)
 		{
 			int position = (offset + width * j + i) * 4;
-			int index = GetPaletteIndexFromColour(texturePaletteSprite, data[position], data[position + 1], data[position + 2]);
+			int index = GetPaletteIndexFromColour(texturePaletteSprite, 4, data[position], data[position + 1], data[position + 2]);
 			frame.data.push_back(index);
 		}
 	}
@@ -245,7 +262,7 @@ void OutputSpriteFile(char* filename, char* varName, vector<SpriteFrame> data)
 #define GLYPHS_X 8
 #define GLYPHS_Y 8
 
-vector<uint8_t> EncodeFont(vector<uint8_t> data, int width, int height)
+vector<uint8_t> EncodeFont(vector<uint8_t>& data, int width, int height)
 {
 	int glyphWidth = (width / GLYPHS_X) - 1;
 	int glyphHeight = (height / GLYPHS_Y) - 1;
@@ -263,7 +280,7 @@ vector<uint8_t> EncodeFont(vector<uint8_t> data, int width, int height)
 				{
 					int position = ((y * (glyphHeight + 1) + j) * width + (x * (glyphWidth + 1) + i)) * 4;
 					uint8_t* palette = fontPalette;
-					int index = GetPaletteIndexFromColour(fontPalette, data[position], data[position + 1], data[position + 2]);
+					int index = GetPaletteIndexFromColour(fontPalette, 4, data[position], data[position + 1], data[position + 2]);
 
 					if(index)
 						buffer |= (1 << bufferPosition);
@@ -286,7 +303,38 @@ vector<uint8_t> EncodeFont(vector<uint8_t> data, int width, int height)
 	return output;
 }
 
-vector<uint8_t> EncodeImage(vector<uint8_t> data, int width, int height)
+void EncodeColourTexture(vector<uint8_t>& data, int width, int height, vector<uint8_t>& outData, vector<uint8_t>& outStripIndices)
+{
+	vector< vector<uint8_t> > strips;
+	
+	for(int x = 0; x < width; x++)
+	{
+		vector<uint8_t> strip;
+		
+		for(int y = 0; y < height; y++)
+		{
+			int position = (y * width + x) * 4;
+			int index = GetPaletteIndexFromColour(uzeboxPalette, 256, data[position], data[position + 1], data[position + 2]);
+			strip.push_back(index);
+		}
+		
+		int stripIndex = find(strips.begin(), strips.end(), strip) - strips.begin();
+		
+		if(stripIndex >= strips.size())
+		{
+			stripIndex = strips.size();
+			strips.push_back(strip);
+		}
+		outStripIndices.push_back((uint8_t)(stripIndex * (height + 2)));
+	}
+	
+	for(int n = 0; n < strips.size(); n++)
+	{
+		outData.insert(outData.end(), strips[n].begin(), strips[n].end());
+	}
+}
+
+vector<uint8_t> EncodeImage(vector<uint8_t>& data, int width, int height)
 {
 	uint8_t buffer = 0;
 	int bufferPos = 0;
@@ -298,7 +346,7 @@ vector<uint8_t> EncodeImage(vector<uint8_t> data, int width, int height)
 		{
 			int position = (y * width + x) * 4;
 			uint8_t* palette = encodeMode == Encode_Texture ? texturePalette : texturePaletteSprite;
-			int index = GetPaletteIndexFromColour(palette, data[position], data[position + 1], data[position + 2]);
+			int index = GetPaletteIndexFromColour(palette, 4, data[position], data[position + 1], data[position + 2]);
 			buffer |= ((index & 0x3) << bufferPos);
 			bufferPos += 2;
 			if(bufferPos >= 8)
@@ -318,7 +366,58 @@ vector<uint8_t> EncodeImage(vector<uint8_t> data, int width, int height)
 	return output;
 }
 
-void OutputFile(char* filename, char* varName, vector<uint8_t> data, int width, int height, bool outputDimensions)
+void OutputColourTextureFile(char* filename, char* varName, vector<uint8_t>& data, vector<uint8_t>& indices, int width, int height)
+{
+	FILE* fs = NULL;
+	
+	fopen_s(&fs, filename, "w");
+	
+	if(fs)
+	{
+		fprintf(fs, "const uint8_t %s_indices[] PROGMEM = {\n\t", varName);
+		for(int n = 0; n < indices.size(); n++)
+		{
+			fprintf(fs, "0x%02x", indices[n]);
+			
+			if(n != indices.size() - 1)
+			{
+				fprintf(fs, ",");
+				
+				if(n > 0 && (n % 20) == 0)
+				{
+					fprintf(fs, "\n\t");
+				}
+			}
+		}
+		fprintf(fs, "\n};\n\n");
+
+		fprintf(fs, "const uint8_t %s[] PROGMEM = {\n\t", varName);
+		for(int n = 0; n < data.size(); n++)
+		{
+			fprintf(fs, "0x%02x", data[n]);
+			
+			if(n != data.size() - 1)
+			{
+				fprintf(fs, ",");
+				
+				if(n > 0 && (n % 20) == 0)
+				{
+					fprintf(fs, "\n\t");
+				}
+			}
+		}
+		fprintf(fs, "\n};\n");
+		fclose(fs);
+		
+		printf("Overall size: %d bytes\n", data.size()); 
+	}
+	else
+	{
+		printf("Unable to open %s for write\n", filename);
+	}
+}
+
+void OutputFile(char* filename, char* varName, vector<uint8_t>& data, int width, int height, bool outputDimensions)
 {
 	FILE* fs = NULL;
 	
@@ -355,7 +454,7 @@ void OutputFile(char* filename, char* varName, vector<uint8_t> data, int width, 
 void PrintUsage(char* processName)
 {
 	printf("Usage:\n"
-			"%s [input.png] [output.inc.h] [varName] [texture|sprite|font]\n", processName);
+			"%s [input.png] [output.inc.h] [varName] [texture|sprite|font|colourTexture]\n", processName);
 }
 
 int main(int argc, char* argv[])
@@ -377,6 +476,10 @@ int main(int argc, char* argv[])
 	else if(!strcmp(argv[4], "font"))
 	{
 		encodeMode = Encode_Font;
+	}
+	else if(!strcmp(argv[4], "colourTexture"))
+	{
+		encodeMode = Encode_ColourTexture;
 	}
 	
 	if(encodeMode == Encode_Invalid)
@@ -411,6 +514,13 @@ int main(int argc, char* argv[])
 		{
 			vector<uint8_t> encoded = EncodeFont(image, width, height);
 			OutputFile(outputFilename, varName, encoded, width, height, false);
+		}
+		else if(encodeMode == Encode_ColourTexture)
+		{
+			vector<uint8_t> encodedData, dataIndices;
+			GenerateUzeboxPalette();
+			EncodeColourTexture(image, width, height, encodedData, dataIndices);
+			OutputColourTextureFile(outputFilename, varName, encodedData, dataIndices, width, height);
 		}
 		else
 		{

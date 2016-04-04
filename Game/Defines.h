@@ -3,7 +3,16 @@
 
 #define USE_SIMPLE_COLLISIONS
 
+#define USE_TEXTURE_MAPPING 1
+#define ENABLE_FOG 0
+
+#if USE_TEXTURE_MAPPING
+#define DISPLAYWIDTH 120
+#define TEXTURE_SIZE 8
+#define TEXTURE_STRIP_STRIDE 10
+#else
 #define DISPLAYWIDTH 144
+#endif
 #define DISPLAYHEIGHT 128
 
 #define HALF_DISPLAYWIDTH (DISPLAYWIDTH >> 1)
@@ -17,11 +26,9 @@
 #define NULL 0
 #endif
 
-#define ENABLE_FOG 1
-
 // WIN32 specific
 #ifdef _WIN32
-#define ZOOM_SCALE 3
+#define ZOOM_SCALE 1
 #define ASPECT_RATIO 2
 
 #define PROGMEM
@@ -62,8 +69,8 @@
 #define WORLD_TO_CELL(x) ((x) >> CELL_SIZE_SHIFT)
 #endif
 
-#define TEXTURE_SIZE 16
-#define TEXTURE_STRIDE 4
+//#define TEXTURE_SIZE 16
+//#define TEXTURE_STRIDE 4
 
 // ~60 degree field of view (these values in wacky 256 unit format)
 #define FOV 44
@@ -76,6 +83,10 @@
 //#define NEAR_PLANE (LCDWIDTH * (0.5/tan(PI*(FOV / 2)/180)))
 #define NEAR_PLANE_MULTIPLIER 222
 #define NEAR_PLANE (DISPLAYWIDTH * NEAR_PLANE_MULTIPLIER / 256)
+
+#define Z_SCALE_MULTIPLIER (CELL_SIZE * NEAR_PLANE * CAMERA_SCALE)
+
+#define MAX_WALL_BUFFER_HEIGHT 192
 
 #define CLIP_PLANE 20
 #define CAMERA_SCALE 1

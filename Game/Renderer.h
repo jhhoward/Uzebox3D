@@ -64,7 +64,12 @@ public:
 private:
 	void initWBuffer();
 	void drawFloorAndCeiling();  
+
+#if USE_TEXTURE_MAPPING
+	void drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint8_t texture, uint8_t texcoord1, uint8_t texcoord2);
+#else
 	void drawWall(int16_t _x1, int16_t _z1, int16_t _x2, int16_t _z2, uint8_t wallColour = UZE_RGB(192, 192, 192));
+#endif
 
 	void drawQueuedSprite(uint8_t id);
 	void drawWeapon();
@@ -74,6 +79,10 @@ private:
 	void clearPixel(uint8_t x, uint8_t y);
 	void setPixel(uint8_t x, uint8_t y);
 	void clearOverlay();
+
+#if USE_TEXTURE_MAPPING
+	void updateTextureBank();
+#endif
 
 	struct 
 	{

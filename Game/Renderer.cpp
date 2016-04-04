@@ -17,6 +17,11 @@
 #include "Data_Font.h"
 #endif
 
+#if USE_TEXTURE_MAPPING
+#include "Data_Textures.h"
+#include "W2Z.h"
+#endif
+
 #include <stdio.h>
 
 /*uint8_t LevelColours[] PROGMEM =
@@ -30,6 +35,7 @@
 };
 */
 
+#if ENABLE_FOG
 uint8_t FogBands[] =
 {
 	//0, 0, 0
@@ -37,6 +43,7 @@ uint8_t FogBands[] =
 	DISPLAYHEIGHT / 8,
 	DISPLAYHEIGHT / 16
 };
+#endif
 
 uint8_t PaletteColours[] PROGMEM =
 {
@@ -72,6 +79,28 @@ uint8_t TextureColours[] PROGMEM =
 #endif
 };
 
+#if USE_TEXTURE_MAPPING
+void Renderer::updateTextureBank()
+{
+	uint8_t* bankPtr = textureBank;
+	uint8_t* resPtr = (uint8_t*) Data_textures;
+	uint8_t floorColour = RGB332(2, 2, 1);
+	uint8_t ceilingColour = RGB332(1, 1, 1);
+
+	for(int n = 0; n < 25; n++)
+	{
+		*bankPtr++ = ceilingColour;
+		for(int v = 0; v < TEXTURE_SIZE; v++)
+		{
+			uint8_t texel = pgm_read_byte(resPtr);
+			resPtr++;
+			*bankPtr++ = texel;
+		}
+		*bankPtr++ = floorColour;
+	}
+}
+#endif
+
 void Renderer::init()
 {
 	//updateLevelColours(LevelColours);
@@ -88,6 +117,9 @@ void Renderer::init()
 	int floorPaletteColour = 15;
 	uint8_t skyColour = RGB332(1, 1, 1);
 
+#if USE_TEXTURE_MAPPING
+	updateTextureBank();
+#else
 	for(int n = 0; n < DISPLAYHEIGHT; n++)
 	{
 		if(n < DISPLAYHEIGHT / 2)
@@ -117,6 +149,7 @@ void Renderer::init()
 			}
 		}
 	}
+#endif
 }
 
 /*
@@ -264,18 +297,30 @@ void Renderer::drawFrame()
 	//ClearVram();
 
 #if 1
-	drawWall(50, -50, -50, -50, 0);
-	drawWall(-50, 50, 50, 50, 0);
-	drawWall(50, 50, 50, -50, 3);
-	drawWall(-50, -50, -50, 50, 3);
+	drawWall(32, -32, -32, -32, 1, 0, 8);
+	drawWall(-32, 32, 32, 32, 2, 0, 8);
+	drawWall(32, 32, 32, -32, 3, 0, 8);
+	drawWall(-32, -32, -32, 32, 4, 0, 8);
 
-	drawWall(-300, -500, 300, -500, 0);
-	drawWall(300, -500, 500, -300, 3);
-	drawWall(500, -300, 500, 300, 6);
-	drawWall(500, 300, 300, 500, 3);
-	drawWall(300, 500, -300, 500, 0);
-	drawWall(-300, 500, -500, 300, 3);
-	drawWall(-500, 300, -300, -500, 6);
+/*	drawWall(256, 256, -256, 256, 1, 0, 64);
+	drawWall(-256, -256, 256, -256, 0, 0, 64);
+	drawWall(256, -256, 256, 256, 1, 0, 64);
+	drawWall(-256, 256, -256, -256, 0, 0, 64);*/
+
+	drawWall(0, -256, 256, 0, 1, 0, 45);
+	drawWall(256, 0, 0, 256, 0, 0, 45);
+	drawWall(0, 256, -256, 0, 1, 0, 45);
+	drawWall(-256, 0, 0, -256, 0, 0, 45);
+
+	
+	/*drawWall(-300, -500, 300, -500, 0, 0, 75);
+	drawWall(300, -500, 500, -300, 6, 0, 75);
+	drawWall(500, -300, 500, 300, 7, 0, 75);
+	drawWall(500, 300, 300, 500, 8, 0, 75);
+	drawWall(300, 500, -300, 500, 0, 0, 75);
+	drawWall(-300, 500, -500, 300, 6, 0, 75);
+	//drawWall(-500, 300, -300, -500, 0, 0, 75);
+	drawWall(-128, -300, 128, -300, 7, 0, 32);*/
 /*	drawWall(-500, -500, 500, -500, 6);
 	drawWall(500, 500, -500, 500, 6);
 	drawWall(500, -500, 500, 500, 3);
@@ -320,9 +365,14 @@ void Renderer::initWBuffer()
 		targetDisplayBuffer[i] = 0;
 }
 
+#define TEXTURE_COORD_SHIFT 10
+#define TEXTURE_COORD_MULTIPLIER (1 << TEXTURE_COORD_SHIFT)
 
-// draws one side of a cell
+#if USE_TEXTURE_MAPPING
+void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint8_t texture, uint8_t _u1, uint8_t _u2)
+#else
 void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint8_t paletteColour)
+#endif
 {
 	// find position of wall edges relative to eye
 	int16_t z2 = (int16_t)(FIXED_TO_INT(view.rotCos * (int32_t)(_x1-view.x)) - FIXED_TO_INT(view.rotSin * (int32_t)(_z1-view.z)));
@@ -336,11 +386,13 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 	if (z1 < CLIP_PLANE)
 	{
 		x1 += (int16_t) ( ((int32_t)(CLIP_PLANE-z1) * (int32_t)(x2-x1)) / (z2-z1) );
+		_u1 += (int16_t) ( ((int32_t)(CLIP_PLANE-z1) * (int32_t)(_u2-_u1)) / (z2-z1) );
 		z1 = CLIP_PLANE;
 	}
 	else if (z2 < CLIP_PLANE)
 	{
 		x2 += (int16_t) ( ((int32_t)(CLIP_PLANE-z2) * (int32_t)(x1-x2)) / (z1-z2) );
+		_u2 += (int16_t) ( ((int32_t)(CLIP_PLANE-z2) * (int32_t)(_u1-_u2)) / (z1-z2) );
 		z2 = CLIP_PLANE;
 	}
 	
@@ -356,27 +408,38 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 	if(sx2 < 0 || sx1 >= DISPLAYWIDTH || sx1 > sx2)
 		return;
 
-	int16_t w1 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z1);
-	int16_t w2 = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / z2);
+	int16_t w1 = (int16_t)((Z_SCALE_MULTIPLIER) / z1);
+	int16_t w2 = (int16_t)((Z_SCALE_MULTIPLIER) / z2);
+
+	int16_t u1 = (_u1 * TEXTURE_COORD_MULTIPLIER) / z1;
+	int16_t u2 = (_u2 * TEXTURE_COORD_MULTIPLIER) / z2;
 		
 	// clamp to the visible portion of the screen
 	// TODO: not rely on int32 precision
+#if 1
 	if(sx1 < 0)
 	{
 		w1 = w1 + ((int32_t)(w2 - w1) * (int32_t)(0 - sx1)) / (int32_t)(sx2 - sx1);
+		u1 = u1 + ((int32_t)(u2 - u1) * (int32_t)(0 - sx1)) / (int32_t)(sx2 - sx1);
+
 		sx1 = 0;
 	}
 
 	if(sx2 > DISPLAYWIDTH - 1)
 	{
 		w2 = w1 + ((int32_t)(w2 - w1) * (int32_t)((DISPLAYWIDTH - 1) - sx1)) / (int32_t)(sx2 - sx1);
+		u2 = u1 + ((int32_t)(u2 - u1) * (int32_t)((DISPLAYWIDTH - 1) - sx1)) / (int32_t)(sx2 - sx1);
 		sx2 = DISPLAYWIDTH - 1;
 	}
+#endif
 	
 	int16_t dx = sx2 - sx1;
-	int16_t werror = dx / 2;//dx >> 1;
+	int16_t werror = dx >> 1;
+	int16_t uerror = werror;
 	int16_t w = w1;
 	int16_t dw, wstep;
+	int16_t du, ustep;
+	int16_t u = u1;
 
 	if(w1 < w2)
 	{
@@ -389,14 +452,43 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 		wstep = -1;
 	}
 
+	if(u1 < u2)
+	{
+		du = u2 - u1;
+		ustep = 1;
+	}
+	else
+	{
+		du = u1 - u2;
+		ustep = -1;
+	}
+
 	for (int16_t x=sx1; x<=sx2; x++)
 	{
 //		uint8_t wallHeight = min(w, HALF_DISPLAYHEIGHT);
-		uint8_t wallHeight = min(w, 127);
+		uint8_t wallHeight = min(w, MAX_WALL_BUFFER_HEIGHT);
 
+//		if(x >= 0 && x < DISPLAYWIDTH - 1)
 		if (wallHeight > targetDisplayBuffer[x * 2])
 		{        
 			targetDisplayBuffer[x * 2] = wallHeight;
+#if USE_TEXTURE_MAPPING
+			/*float u = ((float)x - sx1) / (float)(sx2 - sx1);
+			uint8_t texCoord = (uint8_t) (u * 8);
+			texCoord = texCoord & 0x7;
+			*/
+			
+			//float t = ((float)x - sx1) / (float)(sx2 - sx1);
+			//float u1OverZ1 = (float)_u1 / (float)z1;
+			//float u2OverZ2 = (float)_u2 / (float)z2;
+			//float outU = u1OverZ1 + t * (u2OverZ2 - u1OverZ1);
+			//float outU = (float)u / TEXTURE_COORD_MULTIPLIER;
+			//float outZ = ((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / (float)w); // put this in a lut
+			//uint8_t texcoord = (uint8_t)(outU * outZ);
+			int16_t outZ = pgm_read_word(&W2Z[w]);
+			uint8_t texcoord = ((int16_t)(u * outZ)) >> TEXTURE_COORD_SHIFT;
+			targetDisplayBuffer[x * 2 + 1] = pgm_read_byte(&Data_textures_indices[texture * TEXTURE_SIZE + (texcoord & 7)]);
+#else
 #if ENABLE_FOG
 			if(wallHeight < FogBands[2])
 			{
@@ -415,9 +507,11 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 			{
 				targetDisplayBuffer[x * 2 + 1] = pgm_read_byte(&PaletteColours[paletteColour]);
 			}
+#endif
 		}
 
 		werror -= dw;
+		uerror -= du;
 
 		if(dx > 0)
 		{
@@ -425,6 +519,11 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 			{
 				w += wstep;
 				werror += dx;
+			}
+			while(uerror < 0)
+			{
+				u += ustep;
+				uerror += dx;
 			}
 		}
 	}
@@ -448,7 +547,7 @@ void Renderer::queueSprite(const SpriteFrame* frame, const uint8_t* spriteData, 
 	if(vx <= -DISPLAYWIDTH || vx >= DISPLAYWIDTH)
 		return;
 
-	int16_t w = (int16_t)((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / zt);
+	int16_t w = (int16_t)((Z_SCALE_MULTIPLIER) / zt);
 	int16_t x = vx + HALF_DISPLAYWIDTH;
 
 	if(w > 255)

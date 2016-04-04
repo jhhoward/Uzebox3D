@@ -34,7 +34,11 @@ public:
 extern uint8_t displayBuffer[];
 //extern uint8_t colourTable[];
 extern uint8_t overlayBuffer[];
+#if USE_TEXTURE_MAPPING
+extern uint8_t textureBank[];
+#else
 extern uint8_t outerColours[];
+#endif
 extern uint8_t currentBuffer;
 extern uint8_t overlayColour;
 

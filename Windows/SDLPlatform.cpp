@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "SDLPlatform.h"
 #include "Engine.h"
+#include "TextureScaleLUT.h"
 
 SDLPlatform Platform;
 
@@ -12,7 +13,11 @@ uint8_t overlayBuffer[2 * DISPLAYWIDTH * DISPLAYHEIGHT / 16];
 uint8_t currentBuffer = 0;
 uint8_t overlayColour = 0;
 
+#if USE_TEXTURE_MAPPING
+uint8_t textureBank[256];
+#else
 uint8_t outerColours[DISPLAYHEIGHT];
+#endif
 
 //uint8_t _displayBuffer[DISPLAYWIDTH];
 //uint8_t _colourTable[512];
@@ -149,6 +154,114 @@ void SDLPlatform::drawPixel(uint8_t x, uint8_t y, uint8_t colour)
 	drawPixel(m_screenSurface, x, y, col);
 }
 
+#if USE_TEXTURE_MAPPING
+
+#if 0
+
+uint8_t scalerLUT[SCALER_LUT_SIZE];
+
+uint8_t generateScaleForSize(int scanline, int geo)
+{
+	float top = HALF_DISPLAYHEIGHT - geo * (1.0f + 1.0f / 8.0f);
+	float bottom = top + geo * 2;
+	float v = (scanline - top) / (bottom - top);
+	if(v < 0.0f)
+	{
+		return 0;
+	}
+	else if(v > 1.0f)
+	{
+		return TEXTURE_SIZE + 1;
+	}
+	else
+	{
+		return (uint8_t)(v * (TEXTURE_SIZE)) + 1;
+	}
+}
+
+void generateScalerLUT(int scanline)
+{
+#if 0	// Split LUT generation over two scanlines
+	bool isEven = (scanline & 1) == 0;
+	int start = isEven ? 0 : SCALER_LUT_SIZE / 2;
+	int end = isEven ? SCALER_LUT_SIZE / 2 : SCALER_LUT_SIZE;
+	scanline = isEven ? scanline : scanline - 1;
+#else
+	int start = 0;
+	int end = SCALER_LUT_SIZE;
+#endif
+	for(int geo = start; geo < end; geo++)
+	{
+		scalerLUT[geo] = generateScaleForSize(scanline, geo);
+	}
+
+#if 0
+	if(scanline < HALF_DISPLAYHEIGHT)
+	{
+		int edge = HALF_DISPLAYHEIGHT - scanline;
+		scalerLUT[edge] = generateScaleForSize(scanline, edge);
+	}
+	else
+	{
+		int edge = scanline - HALF_DISPLAYHEIGHT;
+		scalerLUT[edge] = generateScaleForSize(scanline, edge);
+	}
+#endif
+}
+#endif
+
+#define SCALER_LUT_SIZE MAX_WALL_BUFFER_HEIGHT + 1
+
+void SDLPlatform::draw()
+{
+	uint8_t* currentDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
+	uint8_t* currentOverlayBuffer = currentBuffer == 0 ? overlayBuffer : overlayBuffer + (DISPLAYWIDTH * DISPLAYHEIGHT / 16);
+	uint8_t* scalerPtr = (uint8_t*) TextureScaleLUT;
+	uint8_t scalerLUT[SCALER_LUT_SIZE];
+
+	for(int n = 0; n < SCALER_LUT_SIZE; n++)
+	{
+		scalerLUT[n] = *scalerPtr++;
+	}
+
+	int y = 0;
+
+	while(y < DISPLAYHEIGHT)
+	{
+		//generateScalerLUT(y);
+
+		for(int x = 0; x < DISPLAYWIDTH; x++)
+		{
+			uint8_t geo = min(currentDisplayBuffer[x * 2], SCALER_LUT_SIZE - 1);
+			uint8_t offset = scalerLUT[geo];
+			uint8_t textureBase = currentDisplayBuffer[x * 2 + 1];
+			uint8_t colour = textureBank[textureBase + offset];
+
+			int overlayIndex = (((y >> 1) * DISPLAYWIDTH) + x) / 8;
+			uint8_t overlay = currentOverlayBuffer[overlayIndex];
+			int overlayMask = 1 << (x % 8);
+			
+			if((overlayMask & overlay) != 0)
+			{
+				colour = overlayColour;
+			}
+
+			drawPixel(x, y, colour);
+		}
+		y++;
+
+		if(y < DISPLAYHEIGHT)
+		{
+			for(int n = 0; n < PATCHES_PER_SCANLINE; n++)
+			{
+				uint8_t index = *scalerPtr++;
+				uint8_t replacement = *scalerPtr++;
+				scalerLUT[index] = replacement;
+			}
+		}
+	}
+}
+#else
 void SDLPlatform::draw()
 {
 	uint8_t offset = 128 - (DISPLAYHEIGHT / 2);
@@ -195,6 +308,7 @@ void SDLPlatform::draw()
 		}
 	}
 }
+#endif
 
 void ClearVram()
 {
