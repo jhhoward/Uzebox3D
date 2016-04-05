@@ -28,7 +28,13 @@
 
 extern unsigned char displayBuffer[]; 
 extern unsigned char overlayBuffer[];
+
+#if USE_TEXTURE_MAPPING
 extern unsigned char outerColours[];
+#else
+extern unsigned char textureBank[];
+#endif
+
 extern unsigned char currentBuffer;
 extern unsigned char overlayColour;
 

@@ -25,69 +25,28 @@
 .global displayBuffer
 .global overlayBuffer
 .global currentBuffer
-.global overlayColour
-.global textureBank
-.global textureScaleLUTSource
+.global outerColours
+.global overlayColour;
 .global InitializeVideoMode
 .global DisplayLogo
 .global VideoModeVsync
 .global ClearVram
 
 .section .bss
-	.align 8
-	textureBank:			.space 256
-	textureScaleLUT:		.space 193
-	displayBuffer:			.space 480 ; SCREEN_WIDTH * 4
-	overlayBuffer:			.space 1920 ; (SCREEN_WIDTH * 64 / 8)
-	textureScaleLUTSource:	.word 1
+	displayBuffer:			.space 576 ;SCREEN_WIDTH * 4
+	overlayBuffer:			.space 2304; (SCREEN_WIDTH * 64 / 8)
 	overlayColour:			.byte 1
+	outerColours:			.space 128;
 	currentBuffer:			.byte 1
 
 .section .text
-
-; Patch the texture scale lut using instructions (8 cycles per update)
-.macro PATCH_TEXTURE_SCALE_LUT_INNER tempReg=r17 start=0, end=13
-	lpm ZL, X+
-	lpm tempReg, X+
-	st Z, tempReg
-	.if \end-\start
-		PATCH_TEXTURE_SCALE_LUT "(\start+1)", \end
-	.endif
-.endm
-
-.macro PATCH_TEXTURE_SCALE_LUT tempReg=r17 start=0, end=13
-	; the current location of the source LUT from earlier (is r16:r17 ok?)
-	movw XH:XL, r16:r17
-	PATCH_TEXTURE_SCALE_LUT_INNER tempReg, start, end
-	movw r16:r17, XH:XL
-.endm
 
 sub_video_mode:
 
 	WAIT r16,1351
 	
 	clr r20						; Clear scanline counter
-	
-	; Load the initial state for the texture scale LUT
-	lds XH, hi8(textureScaleLUTSource)
-	lds XL, lo8(textureScaleLUTSource)
-	ldi ZH, hi8(textureScaleLUT)
-	ldi ZL, lo8(tetxureSclaeLUT)
-	ldi r16, TEXTURE_SCALER_LUT_SIZE
-load_texture_scale_lut:
-	lpm r17, X+
-	st Z+, r17
-	dec r16
-	brne load_texture_scale_lut
-	
-	; copy the current location of the source LUT for later (is r16:r17 ok?)
-	movw r16:r17, XH:XL
-	
-	; probably need a wait here
-	;WAIT r19,212 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
-	
-	rcall hsync_pulse 
-	rjmp render_scan_line
+	ldi r21, 128	- (128 / 2)	; Init scanline modifier
 
 ;*************************************************************
 ; Rendering main loop starts here
@@ -95,36 +54,48 @@ load_texture_scale_lut:
 next_scan_line:	
 	rcall hsync_pulse 
 
-	; 167 is the minimum cycles to wait
-	WAIT r19,167 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
-	
-	PATCH_TEXTURE_SCALE_LUT r19, 0, 5
+;	WAIT r19,258 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
+	WAIT r19,212 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
 
+; r20 : current scanline
+; r21 : scanline modifier
+; r22 : 'outer' colour (floor or ceiling)
+; r23 : overlay colour
 	lds r23, overlayColour			; Load overlay colour
 	
+	; Load the outer colour
+	ldi ZH, hi8(outerColours)
+	ldi ZL, lo8(outerColours)
+	clr r0
+	add ZL, r20
+	adc ZH, r0
+	ld r22, Z
+	
 	;***draw line***
-render_scan_line:
+	;rcall render_tile_line
 	rcall render_video_line
 	
-	;clr r0
-	;out _SFR_IO_ADDR(DATA_PORT),r0 ; black
+	clr r0
+	out _SFR_IO_ADDR(DATA_PORT),r0 ; black
 
-	; todo: work out how much to wait 
-	;WAIT r19,60 - CENTER_ADJUSTMENT
+	WAIT r19,60 - CENTER_ADJUSTMENT
 
 	inc r20			; increase scanline count
-	cpi r20, (128)	; compare to screen height
-	brsh end_mode
+	cpi r20,(65)	; displayheight / 2 + 1
+	brsh decr_counter
 	
-	PATCH_TEXTURE_SCALE_LUT r19, 0, 8
-	
+	inc r21
+	rjmp .
 	rjmp next_scan_line
 	
-end_mode:
+	decr_counter:
+	dec r21
 	
-	; todo: work out how much to wait 
-	;WAIT r19,60 - CENTER_ADJUSTMENT
-	rcall hsync_pulse
+	cpi r20, 127
+	brne next_scan_line
+	
+	nop
+	rcall hsync_pulse ;145
 	
 	;set vsync flag & flip field
 	lds ZL,sync_flags
@@ -141,22 +112,21 @@ end_mode:
 
 	ret
 
-; Output a pixel (12 cycles)
-; Trashes r24. Increments X by two
+; Output a pixel (10 cycles)
+; Trashes r24, r25. Increments X by two
 ; Setup:
-; X : display buffer
-; Y : texture bank
-; Z : texture offset scaler LUT
+; r21 : scanline modifier
+; r22 : 'outer' colour (floor or ceiling)
 ; r23 : overlay colour
 .macro VIDEO_PIXEL overlayMask, overlayBit
-	ld ZL, X+							; Load wall height
-	ld YL, X+							; Load texture base offset
-	ld r24, Z							; Look up texture offset for this scanline
-	add YL, r24							; Add offset
-	ld r24, Y							; Load texture offset
+	ld r24, X+							; Load wall height
+	ld r25, X+							; Load wall colour
+	add r24, r21						; Add scanline modifier
+	sbrs r24, 7							; If result < 128
+	mov r25, r22						; then use the outer colour
 	sbrc \overlayMask, \overlayBit		; If bit set in overlay
-	mov r24, r23						; then use overlay colour
-	out _SFR_IO_ADDR(DATA_PORT), r24	; Output the pixel colour
+	mov r25, r23						; then use overlay colour
+	out _SFR_IO_ADDR(DATA_PORT), r25	; Output the pixel colour
 .endm
 
 ; Output a block of pixels using the given overlay mask and bit range
@@ -168,7 +138,7 @@ end_mode:
 .endm
 
 ; Load the overlay masks and store the contents in a given range of registers
-.macro LOAD_OVERLAY_MASKS, startReg=0, endReg=14
+.macro LOAD_OVERLAY_MASKS, startReg=0, endReg=17
 	ld \startReg, Y+
 	.if \endReg-\startReg
 		LOAD_OVERLAY_MASKS "(\startReg+1)", \endReg
@@ -176,45 +146,43 @@ end_mode:
 .endm
 
 ; Macro for unrolling the VIDEO_BLOCK loop
-.macro VIDEO_LINE, startReg=0, endReg=14
+.macro VIDEO_LINE, startReg=0, endReg=17
 	VIDEO_BLOCK \startReg, 0, 7
 	.if \endReg-\startReg
 		VIDEO_LINE "(\startReg+1)", \endReg
 	.endif
 .endm
 	
-; Output a scanline of 120 pixels (15 blocks of 8 pixels)
+; Output a scanline of 144 pixels (18 blocks of 8 pixels)
+; 47 cycles setup
+; 1440 cycles rendering
+; 1487? cycles total
 ; Trashes r0 - r17, r24, r25
 ; Assumes:
 ; r20 : current scanline
+; r21 : scanline modifier
+; r22 : 'outer' colour (floor or ceiling)
 ; r23 : overlay colour
 render_video_line:
 	; determine which buffer from the double buffer to use
 	lds r18, currentBuffer;
-	cpi r18, 1
-	breq load_secondary_buffer
-
-load_primary_buffer:
+	
 	; Set up display buffer pointer (2 cycles)
 	ldi XL, lo8(displayBuffer)
 	ldi XH, hi8(displayBuffer)
+	
+	; If we are using the second buffer then increment pointer by 288
+	ldi r16, 32
+	ldi r17, 1
+	sbrc r18, 0
+	add XL, r16
+	sbrc r18, 0
+	adc XH, r17
 
-	; Set up overlay pointer 
+	; Set up overlay pointer (9 cycles)
+	; ptr = overlayBuffer + (scanline >> 1) * (SCREEN_WIDTH / 8)
 	ldi YL, lo8(overlayBuffer)
 	ldi YH, hi8(overlayBuffer)
-	rjmp load_overlay_mask
-
-load_secondary_buffer:
-	; Set up display buffer pointer (2 cycles)
-	ldi XL, lo8(displayBuffer + 240)
-	ldi XH, hi8(displayBuffer + 240)
-
-	; Set up overlay pointer 
-	ldi YL, lo8(overlayBuffer + 960)
-	ldi YH, hi8(overlayBuffer + 960)
-
-load_overlay_mask:
-	; ptr = overlayBuffer + (scanline >> 1) * (SCREEN_WIDTH / 8)
 	mov r16, r20
 	lsr r16
 	ldi r17, (SCREEN_WIDTH / 8)
@@ -222,15 +190,19 @@ load_overlay_mask:
 	add YL, r0
 	adc YH, r1
 
-	; Load all the overlay contents ahead of time into registers r0 - r14 (30 cycles)
-	LOAD_OVERLAY_MASKS 0, 14
-	
-	; Set up pointers
-	ldi ZH, hi8(textureScaleLUT)
-	ldi YH, hi8(textureBank)
+	; If we are using the second buffer then increment pointer by 1152
+	ldi r16, 128
+	ldi r17, 4
+	sbrc r18, 0
+	add YL, r16
+	sbrc r18, 0
+	adc YH, r17
+
+	; Load all the overlay contents ahead of time into registers r0 - r17 (36 cycles)
+	LOAD_OVERLAY_MASKS 0, 17
 	
 	; Output the pixels to the screen (1440 cycles)
-	VIDEO_LINE 0, 14
+	VIDEO_LINE 0, 17
 	
 	ret
 
