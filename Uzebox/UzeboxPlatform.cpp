@@ -26,11 +26,14 @@ extern "C" {
 }
 #include "UzeboxPlatform.h"
 #include "Engine.h"
+#include "TextureScaleLUT.h"
 
 UzeboxPlatform Platform;
 
 #define MAX_TICKS 3
 uint8_t tickCounter = 0;
+
+extern uint8_t* textureScaleLUTSource;
 
 void VSyncCallback()
 {
@@ -44,37 +47,39 @@ int main(){
 	SetUserPostVsyncCallback(VSyncCallback);
 	ClearVram();
 	
-	/*int n = 0;
+	textureScaleLUTSource = (uint8_t*)TextureScaleLUT;
+	
+	int n = 0;
 	for(int y = 0; y < SCREEN_HEIGHT; y++)
 		for(int x = 0; x < SCREEN_WIDTH / 8; x++)
 		{
-			if(y & 1)
+		//	if(y & 1)
 				overlayBuffer[n] = 170;
-			else
-				overlayBuffer[n] = 85;
+		//	else
+		//		overlayBuffer[n] = 85;
 			n++;
 		}
-		*/
+		
 	for(int n = 0; n < SCREEN_WIDTH; n++)
 	{
-		displayBuffer[n * 2] = 40;
-		displayBuffer[n * 2 + 1] = UZE_RGB(128, 128, 128);
+		displayBuffer1[n * 2] = 40;
+		displayBuffer1[n * 2 + 1] = 0; //UZE_RGB(128, 128, 128);
 	}
 	
 
 	srand(0x365e);
 	
-	engine.init();
+	//engine.init();
 	
 	while(1)
 	{
-		engine.ticks = tickCounter;
+		//engine.ticks = tickCounter;
 		tickCounter = 0;
 		
-		Platform.update();
-		engine.update();
+//		Platform.update();
+//		engine.update();
 		//WaitVsync(1);
-		engine.renderer.drawFrame();
+//		engine.renderer.drawFrame();
 	}
 }
 

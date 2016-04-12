@@ -10,7 +10,7 @@ CC = avr-gcc
 INFO=../gameinfo.properties
 
 ## Kernel settings
-KERNEL_DIR = c:/uzebox/kernel
+KERNEL_DIR = d:/uzebox/kernel
 KERNEL_OPTIONS  = -DVIDEO_MODE=0 -DVIDEO_MODE_PATH=. -DINTRO_LOGO=0 -DSOUND_ENABLE=0
 
 
@@ -48,8 +48,8 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
 ## Objects that must be built in order to link
-PROJECT_OBJECTS = Engine.o FixedMath.o Level.o Player.o Renderer.o UzeboxPlatform.o Actor.o Menu.o
-#PROJECT_OBJECTS = UzeboxPlatform.o
+#PROJECT_OBJECTS = Engine.o FixedMath.o Level.o Player.o Renderer.o UzeboxPlatform.o Actor.o
+PROJECT_OBJECTS = UzeboxPlatform.o
 OBJECTS = uzeboxVideoEngineCore.o uzeboxCore.o uzeboxSoundEngine.o uzeboxSoundEngineCore.o uzeboxVideoEngine.o $(PROJECT_OBJECTS)
 
 ## Objects explicitly added by the user

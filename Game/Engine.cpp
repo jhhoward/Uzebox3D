@@ -4,7 +4,7 @@ Engine engine;
 
 void Engine::init()
 {
-	menu.init();
+//	menu.init();
 	difficulty = Difficulty_Medium;
 	renderer.init();
 	
@@ -76,17 +76,17 @@ void Engine::update()
 #endif
 			}
 
-			if(Platform.readInput() & Input_Btn_C)
+			/*if(Platform.readInput() & Input_Btn_C)
 			{
 				gameState = GameState_PauseMenu;
 				engine.menu.switchMenu(Menu_Paused);
-			}
+			}*/
 		}
 		break;
 	case GameState_Menu:
 	case GameState_PauseMenu:
 		{
-			menu.update();
+	//		menu.update();
 		}
 		break;
 	case GameState_FinishedLevel:
@@ -114,7 +114,7 @@ void Engine::draw()
 	case GameState_Menu:
 	case GameState_PauseMenu:
 		{
-			menu.draw();
+		//	menu.draw();
 		}
 		break;
 	case GameState_Playing:

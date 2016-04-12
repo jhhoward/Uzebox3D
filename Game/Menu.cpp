@@ -8,7 +8,7 @@
 typedef void (*MenuFn)(void);
 
 // Main menu
-const char Str_Wolfenduino3D[] PROGMEM = "WOLFENDUINO 3D";
+const char Str_Wolfenduino3D[] PROGMEM = "WOLFENDUINO 3D TEST";
 const char Str_Continue[] PROGMEM = "CONTINUE";
 const char Str_NewGame[] PROGMEM = "NEW GAME";
 const char Str_Sound[] PROGMEM = "SOUND:";

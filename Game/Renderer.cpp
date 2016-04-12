@@ -106,7 +106,7 @@ void Renderer::init()
 	//updateLevelColours(LevelColours);
 	overlayColour = RGB332(0, 0, 0);
 
-	targetDisplayBuffer = displayBuffer;
+	targetDisplayBuffer = displayBuffer1;
 	targetOverlayBuffer = overlayBuffer;
 	currentBuffer = 1;
 
@@ -349,12 +349,12 @@ void Renderer::drawFrame()
 void Renderer::flipBuffers()
 {
 #if ENABLE_DOUBLE_BUFFER
-	targetDisplayBuffer = currentBuffer == 0 ? displayBuffer : displayBuffer + (DISPLAYWIDTH * 2);
+	targetDisplayBuffer = currentBuffer == 0 ? displayBuffer1 : displayBuffer2;
 	targetOverlayBuffer = currentBuffer == 0 ? overlayBuffer : overlayBuffer + (DISPLAYWIDTH * DISPLAYHEIGHT / 16);
 	currentBuffer = !currentBuffer;
 #else
 	currentBuffer = 0;
-	targetDisplayBuffer = displayBuffer;
+	targetDisplayBuffer = displayBuffer1;
 	targetOverlayBuffer = overlayBuffer;
 #endif
 }

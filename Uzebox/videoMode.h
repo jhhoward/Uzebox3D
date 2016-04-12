@@ -26,7 +26,8 @@
  */
 #pragma once
 
-extern unsigned char displayBuffer[]; 
+extern unsigned char displayBuffer1[]; 
+extern unsigned char displayBuffer2[]; 
 extern unsigned char overlayBuffer[];
 
 #if USE_TEXTURE_MAPPING

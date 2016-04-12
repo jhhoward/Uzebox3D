@@ -19,7 +19,7 @@
 #include "Renderer.h"
 #include "Player.h"
 #include "Actor.h"
-#include "Menu.h"
+//#include "Menu.h"
 #include "Level.h"
 
 enum
@@ -54,7 +54,7 @@ public:
 	Renderer renderer;
 	Player player;
 	Level level;
-	Menu menu;
+	//Menu menu;
 	Actor actors[MAX_ACTIVE_ACTORS];
 
 	int16_t frameCount;

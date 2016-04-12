@@ -21,12 +21,17 @@
 ;****************************************************
 ;
 ;****************************************************	
+
+#define TEXTURE_SCALER_LUT_SIZE 193
+#define LUT_PTR_REG r16
 	
-.global displayBuffer
+.global displayBuffer1
+.global displayBuffer2
 .global overlayBuffer
 .global currentBuffer
 .global overlayColour
 .global textureBank
+.global textureScaleLUT
 .global textureScaleLUTSource
 .global InitializeVideoMode
 .global DisplayLogo
@@ -34,73 +39,93 @@
 .global ClearVram
 
 .section .bss
-	.align 8
-	textureBank:			.space 256
-	textureScaleLUT:		.space 193
-	displayBuffer:			.space 480 ; SCREEN_WIDTH * 4
-	overlayBuffer:			.space 1920 ; (SCREEN_WIDTH * 64 / 8)
 	textureScaleLUTSource:	.word 1
 	overlayColour:			.byte 1
 	currentBuffer:			.byte 1
+	displayBuffer1:			.space 240
+	alignmentPadding:		.space 8 		; I'd rather use align keyword but that aligns the whole section
+	textureBank:			.space 256
+	textureScaleLUT:		.space 193
+	displayBuffer2:			.space 240 ; SCREEN_WIDTH * 2
+	overlayBuffer:			.space 960 ; (SCREEN_WIDTH * 64 / 8)
+	overlayBuffer2:			.space 960 ; (SCREEN_WIDTH * 64 / 8)
+
+;.section .bss
 
 .section .text
 
 ; Patch the texture scale lut using instructions (8 cycles per update)
-.macro PATCH_TEXTURE_SCALE_LUT_INNER tempReg=r17 start=0, end=13
-	lpm ZL, X+
-	lpm tempReg, X+
-	st Z, tempReg
-	.if \end-\start
-		PATCH_TEXTURE_SCALE_LUT "(\start+1)", \end
+.macro PATCH_TEXTURE_SCALE_LUT_INNER tempReg=r19 count=13
+	lpm XL, Z+
+	lpm \tempReg, Z+
+	;st X, \tempReg
+	nop
+	nop
+	.if \count > 0
+		PATCH_TEXTURE_SCALE_LUT \tempReg, "(\count-1)"
 	.endif
 .endm
 
-.macro PATCH_TEXTURE_SCALE_LUT tempReg=r17 start=0, end=13
-	; the current location of the source LUT from earlier (is r16:r17 ok?)
-	movw XH:XL, r16:r17
-	PATCH_TEXTURE_SCALE_LUT_INNER tempReg, start, end
-	movw r16:r17, XH:XL
+.macro PATCH_TEXTURE_SCALE_LUT tempReg=r19 count=13
+	; the current location of the source LUT from earlier
+	movw ZL, LUT_PTR_REG
+	ldi XH, hi8(textureScaleLUT)
+	PATCH_TEXTURE_SCALE_LUT_INNER \tempReg, \count
+	movw LUT_PTR_REG, ZL
 .endm
 
 sub_video_mode:
 
-	WAIT r16,1351
+;	WAIT r16,1351
 	
 	clr r20						; Clear scanline counter
 	
 	; Load the initial state for the texture scale LUT
-	lds XH, hi8(textureScaleLUTSource)
-	lds XL, lo8(textureScaleLUTSource)
-	ldi ZH, hi8(textureScaleLUT)
-	ldi ZL, lo8(tetxureSclaeLUT)
-	ldi r16, TEXTURE_SCALER_LUT_SIZE
+	;lds ZH, (textureScaleLUTSource)
+	;lds ZL, (textureScaleLUTSource + 1)
+	;ldi XH, hi8(textureScaleLUT)
+	;ldi XL, lo8(textureScaleLUT)
+	;ldi r16, TEXTURE_SCALER_LUT_SIZE
 load_texture_scale_lut:
-	lpm r17, X+
-	st Z+, r17
-	dec r16
-	brne load_texture_scale_lut
+	;lpm r17, Z+
+	;;st X+, r17
+	;rjmp .
+	;dec r16
+	;brne load_texture_scale_lut
 	
-	; copy the current location of the source LUT for later (is r16:r17 ok?)
-	movw r16:r17, XH:XL
+	WAIT r19, 1351
+	
+	; copy the current location of the source LUT for later
+	movw LUT_PTR_REG, ZL
 	
 	; probably need a wait here
 	;WAIT r19,212 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
 	
 	rcall hsync_pulse 
+	
+	WAIT r19, 83
+	lds r23, overlayColour			; Load overlay colour
+	
 	rjmp render_scan_line
 
 ;*************************************************************
 ; Rendering main loop starts here
 ;*************************************************************
 next_scan_line:	
+	movw ZL, LUT_PTR_REG
+	ldi XH, hi8(textureScaleLUT)
+
+	PATCH_TEXTURE_SCALE_LUT_INNER r19, 6
+
 	rcall hsync_pulse 
 
 	; 167 is the minimum cycles to wait
-	WAIT r19,167 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
+	WAIT r19,169 - AUDIO_OUT_HSYNC_CYCLES + CENTER_ADJUSTMENT
 	
-	PATCH_TEXTURE_SCALE_LUT r19, 0, 5
+	;WAIT r19, 40
+	PATCH_TEXTURE_SCALE_LUT_INNER r19, 4
 
-	lds r23, overlayColour			; Load overlay colour
+	movw LUT_PTR_REG, ZL
 	
 	;***draw line***
 render_scan_line:
@@ -116,14 +141,21 @@ render_scan_line:
 	cpi r20, (128)	; compare to screen height
 	brsh end_mode
 	
-	PATCH_TEXTURE_SCALE_LUT r19, 0, 8
+	;WAIT r19, 89
+	;rjmp .
+	;rjmp .
+	;rjmp .
+	;rjmp .
 	
 	rjmp next_scan_line
 	
 end_mode:
+	; Black output
+	clr r0
+	out _SFR_IO_ADDR(DATA_PORT), r0	
 	
 	; todo: work out how much to wait 
-	;WAIT r19,60 - CENTER_ADJUSTMENT
+	WAIT r19, 75
 	rcall hsync_pulse
 	
 	;set vsync flag & flip field
@@ -149,11 +181,16 @@ end_mode:
 ; Z : texture offset scaler LUT
 ; r23 : overlay colour
 .macro VIDEO_PIXEL overlayMask, overlayBit
-	ld ZL, X+							; Load wall height
-	ld YL, X+							; Load texture base offset
-	ld r24, Z							; Look up texture offset for this scanline
-	add YL, r24							; Add offset
-	ld r24, Y							; Load texture offset
+;	ld XL, Z+							; Load wall height
+;	ld YL, Z+							; Load texture base offset
+;	ld r24, X							; Look up texture offset for this scanline
+;	add YL, r24							; Add offset
+;	ld r24, Y							; Load texture offset
+	rjmp .
+	rjmp .
+	rjmp .
+	rjmp .
+	ldi r24, 255
 	sbrc \overlayMask, \overlayBit		; If bit set in overlay
 	mov r24, r23						; then use overlay colour
 	out _SFR_IO_ADDR(DATA_PORT), r24	; Output the pixel colour
@@ -196,8 +233,8 @@ render_video_line:
 
 load_primary_buffer:
 	; Set up display buffer pointer (2 cycles)
-	ldi XL, lo8(displayBuffer)
-	ldi XH, hi8(displayBuffer)
+	ldi ZL, lo8(displayBuffer1)
+	ldi ZH, hi8(displayBuffer1)
 
 	; Set up overlay pointer 
 	ldi YL, lo8(overlayBuffer)
@@ -206,19 +243,20 @@ load_primary_buffer:
 
 load_secondary_buffer:
 	; Set up display buffer pointer (2 cycles)
-	ldi XL, lo8(displayBuffer + 240)
-	ldi XH, hi8(displayBuffer + 240)
+	ldi ZL, lo8(displayBuffer2)
+	ldi ZH, hi8(displayBuffer2)
 
 	; Set up overlay pointer 
-	ldi YL, lo8(overlayBuffer + 960)
-	ldi YH, hi8(overlayBuffer + 960)
-
+	ldi YL, lo8(overlayBuffer) ; + 960)
+	ldi YH, hi8(overlayBuffer) ; + 960)
+	nop
+	
 load_overlay_mask:
 	; ptr = overlayBuffer + (scanline >> 1) * (SCREEN_WIDTH / 8)
-	mov r16, r20
-	lsr r16
-	ldi r17, (SCREEN_WIDTH / 8)
-	mul r16, r17
+	mov r18, r20
+	lsr r18
+	ldi r19, (SCREEN_WIDTH / 8)
+	mul r18, r17
 	add YL, r0
 	adc YH, r1
 
@@ -226,7 +264,7 @@ load_overlay_mask:
 	LOAD_OVERLAY_MASKS 0, 14
 	
 	; Set up pointers
-	ldi ZH, hi8(textureScaleLUT)
+	ldi XH, hi8(textureScaleLUT)
 	ldi YH, hi8(textureBank)
 	
 	; Output the pixels to the screen (1440 cycles)
@@ -246,8 +284,8 @@ ClearVram:
 	ldi r30,lo8(SCREEN_WIDTH)
 	ldi r31,hi8(SCREEN_WIDTH)
 
-	ldi XL,lo8(displayBuffer)
-	ldi XH,hi8(displayBuffer)
+	ldi XL,lo8(displayBuffer1)
+	ldi XH,hi8(displayBuffer1)
 
 fill_vram_loop:
 	st X+,r1
