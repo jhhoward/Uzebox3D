@@ -7,10 +7,10 @@
 #define OUTPUT_PATH_W2Z "../../DataHeaders/W2Z.h"
 #define SCALER_LUT_SIZE (MAX_WALL_BUFFER_HEIGHT + 1)
 
-#define MAX_PATCHES_PER_SCANLINE 13
+#define MAX_PATCHES_PER_SCANLINE 10
 
-#undef TEXTURE_SIZE
-#define TEXTURE_SIZE 8
+#undef TEXTURE_HEIGHT
+#define TEXTURE_HEIGHT 7
 
 using namespace std;
 
@@ -20,9 +20,9 @@ uint8_t generateScaleForSize(int scanline, int geo)
 {
 	float top = HALF_DISPLAYHEIGHT - geo;
 
-	if((TEXTURE_SIZE & 0x1) == 0)
+	if((TEXTURE_HEIGHT & 0x1) == 0)
 	{
-		top = HALF_DISPLAYHEIGHT - geo * (1.0f + 1.0f / TEXTURE_SIZE);
+		top = HALF_DISPLAYHEIGHT - geo * (1.0f + 1.0f / TEXTURE_HEIGHT);
 	}
 
 	float bottom = top + geo * 2;
@@ -31,13 +31,25 @@ uint8_t generateScaleForSize(int scanline, int geo)
 	{
 		return 0;
 	}
-	else if(v > 1.0f)
+	else if(v >= 1.0f)
 	{
 		return TEXTURE_SIZE + 1;
 	}
 	else
 	{
-		return (uint8_t)(v * (TEXTURE_SIZE)) + 1;
+		float sampleSize = TEXTURE_HEIGHT - 1;
+		int samplePoint = (int)(v * sampleSize + 0.5f);
+		uint8_t texLocation = (samplePoint * (TEXTURE_HEIGHT - 1)) / sampleSize;
+
+		//texLocation &= 0xfe;
+		/*if(geo <= 12)
+		{
+			return 1;
+		}*/
+	//	texLocation >>= 1;
+
+		//uint8_t texLocation = (uint8_t)(v * (TEXTURE_SIZE));
+		return texLocation + 1;
 	}
 }
 
