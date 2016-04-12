@@ -365,7 +365,7 @@ void Renderer::initWBuffer()
 		targetDisplayBuffer[i] = 0;
 }
 
-#define TEXTURE_COORD_SHIFT 10
+#define TEXTURE_COORD_SHIFT 9
 #define TEXTURE_COORD_MULTIPLIER (1 << TEXTURE_COORD_SHIFT)
 
 #if USE_TEXTURE_MAPPING
@@ -470,7 +470,7 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 
 //		if(x >= 0 && x < DISPLAYWIDTH - 1)
 		if (wallHeight > targetDisplayBuffer[x * 2])
-		{        
+		{
 			targetDisplayBuffer[x * 2] = wallHeight;
 #if USE_TEXTURE_MAPPING
 			/*float u = ((float)x - sx1) / (float)(sx2 - sx1);
@@ -486,7 +486,7 @@ void Renderer::drawWall(int16_t _x2, int16_t _z2, int16_t _x1, int16_t _z1, uint
 			//float outZ = ((CELL_SIZE * NEAR_PLANE * CAMERA_SCALE) / (float)w); // put this in a lut
 			//uint8_t texcoord = (uint8_t)(outU * outZ);
 			int16_t outZ = pgm_read_word(&W2Z[w]);
-			uint8_t texcoord = ((int16_t)(u * outZ)) >> TEXTURE_COORD_SHIFT;
+			uint8_t texcoord = ((int16_t)(u * outZ)) >> (TEXTURE_COORD_SHIFT);
 			targetDisplayBuffer[x * 2 + 1] = pgm_read_byte(&Data_textures_indices[texture * TEXTURE_SIZE + (texcoord & 7)]);
 #else
 #if ENABLE_FOG
